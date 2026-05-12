@@ -106,6 +106,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     delete: (id: string) => ipcRenderer.invoke('skill:delete', id),
   },
 
+  // ===== MCP =====
+  mcp: {
+    server: {
+      list: () => ipcRenderer.invoke('mcp:server:list'),
+      save: (config: unknown) => ipcRenderer.invoke('mcp:server:save', config),
+      delete: (id: string) => ipcRenderer.invoke('mcp:server:delete', id),
+      connect: (id: string) => ipcRenderer.invoke('mcp:server:connect', id),
+      disconnect: (id: string) => ipcRenderer.invoke('mcp:server:disconnect', id),
+    },
+    tool: {
+      list: (serverId?: string) => ipcRenderer.invoke('mcp:tool:list', serverId),
+      call: (serverId: string, toolName: string, args: Record<string, unknown>) =>
+        ipcRenderer.invoke('mcp:tool:call', serverId, toolName, args),
+    },
+    status: () => ipcRenderer.invoke('mcp:status'),
+  },
+
   // ===== 主题 =====
   theme: {
     getShouldUseDark: () => ipcRenderer.invoke('theme:get-should-use-dark'),

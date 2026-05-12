@@ -5,6 +5,7 @@ import {
   BookOutlined,
   ThunderboltOutlined,
   MenuOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TitleBar } from './TitleBar';
@@ -21,6 +22,7 @@ const menuItems = [
   { key: '/chat', icon: <MessageOutlined />, label: '对话' },
   { key: '/prompts', icon: <BookOutlined />, label: 'Prompt 模板' },
   { key: '/skills', icon: <ThunderboltOutlined />, label: 'Skill' },
+  { key: '/mcp', icon: <ApiOutlined />, label: 'MCP' },
   { key: '/settings', icon: <SettingOutlined />, label: '设置' },
 ];
 

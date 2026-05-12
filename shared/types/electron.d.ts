@@ -9,6 +9,7 @@ import type { Conversation, ConversationSummary, Message } from './chat';
 import type { PromptTemplate, VariableDef } from './prompt';
 import type { Skill } from './skill';
 import type { FileParseResult } from './file';
+import type { MCPServerConfig, MCPTool, MCPToolResult } from './mcp';
 
 export interface ElectronAPI {
   // 系统
@@ -89,6 +90,22 @@ export interface ElectronAPI {
     get(id: string): Promise<Skill | null>;
     save(data: Partial<Skill>): Promise<void>;
     delete(id: string): Promise<void>;
+  };
+
+  // MCP
+  mcp: {
+    server: {
+      list(): Promise<(MCPServerConfig & { status: string })[]>;
+      save(config: MCPServerConfig): Promise<void>;
+      delete(id: string): Promise<void>;
+      connect(id: string): Promise<{ success: boolean; tools: MCPTool[]; status: string }>;
+      disconnect(id: string): Promise<{ success: boolean; status: string }>;
+    };
+    tool: {
+      list(serverId?: string): Promise<MCPTool[]>;
+      call(serverId: string, toolName: string, args: Record<string, unknown>): Promise<MCPToolResult>;
+    };
+    status(): Promise<Record<string, string>>;
   };
 
   // 主题
