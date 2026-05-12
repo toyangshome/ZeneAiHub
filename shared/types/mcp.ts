@@ -2,7 +2,7 @@
 export interface MCPServerConfig {
   id: string;
   name: string;
-  transport: 'stdio' | 'sse' | 'local';
+  transport: 'stdio' | 'sse';
   command?: string;
   args?: string[];
   cwd?: string;
@@ -13,7 +13,6 @@ export interface MCPServerConfig {
   autoReconnect: boolean;
   reconnectInterval?: number;
   timeout?: number;
-  local?: boolean;
   createdAt?: number;
   updatedAt?: number;
 }

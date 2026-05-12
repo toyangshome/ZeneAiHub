@@ -2,7 +2,6 @@ import { ipcMain } from 'electron';
 import { IPC } from '@shared/types/ipc';
 import { MCPServerRepo } from '../services/storage/repositories/MCPServerRepo';
 import { mcpManager } from '../services/mcp/MCPManager';
-import { localFileTools, handleLocalToolCall } from '../services/mcp/LocalFileTools';
 import type { MCPServerConfig } from '@shared/types';
 
 export function registerMCPHandlers(): void {
@@ -29,14 +28,6 @@ export function registerMCPHandlers(): void {
   ipcMain.handle(IPC.MCP_SERVER_CONNECT, async (_event, id: string) => {
     const config = repo.get(id);
     if (!config) throw new Error(`Server ${id} 不存在`);
-
-    // 本地工具：直接注册，不走 MCP 协议
-    if (config.local || config.transport === 'local') {
-      mcpManager.registerLocalTools(config.id, config.name, localFileTools, handleLocalToolCall);
-      const tools = mcpManager.getServerTools(config.id);
-      return { success: true, tools, status: 'connected' };
-    }
-
     const tools = await mcpManager.connect(config);
     return { success: true, tools, status: 'connected' };
   });
