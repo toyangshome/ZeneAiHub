@@ -1,6 +1,10 @@
 import { useState, type FC } from 'react';
 import { Typography, Tag, Image } from 'antd';
-import { FileOutlined, DownOutlined, RightOutlined, PictureOutlined } from '@ant-design/icons';
+import {
+  FileOutlined, DownOutlined, RightOutlined, PictureOutlined,
+  ToolOutlined, CheckCircleOutlined, CloseCircleOutlined,
+} from '@ant-design/icons';
+import type { Message, ToolCall } from '@shared/types';
 
 interface MessageContentProps {
   content: string;
@@ -48,6 +52,101 @@ export const MessageContent: FC<MessageContentProps> = ({ content }) => {
     </div>
   );
 };
+
+/** 工具调用结果卡片 */
+export const ToolMessageContent: FC<{ message: Message }> = ({ message }) => {
+  const toolCalls = message.toolCalls || [];
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {toolCalls.map((tc) => (
+        <ToolCallCard key={tc.id} toolCall={tc} />
+      ))}
+      {toolCalls.length === 0 && (
+        <div
+          style={{
+            border: '1px solid var(--ant-color-border)',
+            borderRadius: 10,
+            padding: '6px 10px',
+            background: 'var(--ant-color-fill-tertiary)',
+            fontSize: 12,
+          }}
+        >
+          <ToolOutlined style={{ marginRight: 6, color: 'var(--ant-color-primary)' }} />
+          {message.content}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/** 单个工具调用卡片 */
+function ToolCallCard({ toolCall }: { toolCall: ToolCall }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasResult = toolCall.result !== undefined;
+  const isError = hasResult && toolCall.result?.startsWith('{') && (() => {
+    try { return Boolean(JSON.parse(toolCall.result!).error); } catch { return false; }
+  })();
+
+  return (
+    <div
+      style={{
+        border: '1px solid var(--ant-color-border)',
+        borderRadius: 10,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        onClick={() => hasResult && setExpanded(!expanded)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 10px',
+          background: 'var(--ant-color-fill-tertiary)',
+          cursor: hasResult ? 'pointer' : 'default',
+          userSelect: 'none',
+        }}
+      >
+        <ToolOutlined style={{ color: 'var(--ant-color-primary)', fontSize: 13 }} />
+        <Typography.Text strong style={{ fontSize: 13, flex: 1 }}>
+          {toolCall.name}
+        </Typography.Text>
+        {hasResult ? (
+          isError ? (
+            <Tag color="error" icon={<CloseCircleOutlined />} style={{ fontSize: 11, marginRight: 0 }}>失败</Tag>
+          ) : (
+            <Tag color="success" icon={<CheckCircleOutlined />} style={{ fontSize: 11, marginRight: 0 }}>完成</Tag>
+          )
+        ) : (
+          <Tag color="processing" style={{ fontSize: 11, marginRight: 0 }}>执行中...</Tag>
+        )}
+        {hasResult && (
+          expanded ? <DownOutlined style={{ fontSize: 10 }} /> : <RightOutlined style={{ fontSize: 10 }} />
+        )}
+      </div>
+      {expanded && hasResult && (
+        <div
+          style={{
+            padding: '8px 10px',
+            fontFamily: 'monospace',
+            fontSize: 12,
+            lineHeight: 1.6,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+            maxHeight: 300,
+            overflow: 'auto',
+            color: 'var(--ant-color-text-secondary)',
+            borderTop: '1px solid var(--ant-color-border)',
+          }}
+        >
+          {toolCall.result}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const FileBlock: FC<{ name: string; content: string }> = ({ name, content }) => {
   const [expanded, setExpanded] = useState(false);

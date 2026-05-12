@@ -40,6 +40,8 @@ export interface ElectronAPI {
     onStreamChunk(requestId: string, callback: (chunk: string) => void): () => void;
     onStreamDone(requestId: string, callback: () => void): () => void;
     onStreamError(requestId: string, callback: (error: string) => void): () => void;
+    onStreamToolCall(requestId: string, callback: (toolCalls: Array<{ id: string; name: string; arguments: string }>) => void): () => void;
+    onStreamToolResult(requestId: string, callback: (result: { id: string; name: string; result: string; isError: boolean }) => void): () => void;
   };
 
   // 模型

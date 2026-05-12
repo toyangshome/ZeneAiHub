@@ -52,7 +52,18 @@ export interface StreamConfig {
   topP: number;
   systemPrompt?: string;
   thinking?: boolean;
+  mcpTools?: Array<{
+    name: string;
+    description: string;
+    inputSchema: Record<string, unknown>;
+    serverId: string;
+  }>;
 }
+
+/** Provider 流式事件 */
+export type StreamEvent =
+  | { type: 'text'; content: string }
+  | { type: 'tool_calls'; toolCalls: Array<{ id: string; name: string; arguments: string }> };
 
 /** 模型测试结果 */
 export interface ModelTestResult {

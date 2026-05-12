@@ -4,7 +4,7 @@ import { type GetProp } from 'antd';
 import { useChatStore } from '../../../stores/chatStore';
 import { useUIStore } from '../../../stores/uiStore';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { MessageContent } from './MessageContent';
+import { MessageContent, ToolMessageContent } from './MessageContent';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import { renderAvatar } from '../../Settings/AvatarSettings';
 import type { Message } from '@shared/types';
@@ -42,6 +42,22 @@ export function MessageList() {
     () =>
       messages.map((msg: Message) => {
         const isUser = msg.role === 'user';
+        const isTool = msg.role === 'tool';
+
+        if (isTool) {
+          return {
+            key: msg.id,
+            placement: 'start' as const,
+            avatar: {
+              icon: <AvatarIcon avatarKey={assistantAvatar} />,
+              style: { background: 'transparent' },
+            },
+            content: <ToolMessageContent message={msg} />,
+            messageRender: (content: React.ReactNode) => content,
+            styles: { content: { maxWidth: '75%' } },
+          };
+        }
+
         return {
           key: msg.id,
           placement: isUser ? 'end' : 'start' as const,

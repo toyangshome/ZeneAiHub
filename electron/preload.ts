@@ -48,6 +48,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on(channel, handler);
       return () => { ipcRenderer.removeListener(channel, handler); };
     },
+    onStreamToolCall: (requestId: string, callback: (toolCalls: Array<{ id: string; name: string; arguments: string }>) => void) => {
+      const channel = `ai:stream:tool-call:${requestId}`;
+      const handler = (_event: Electron.IpcRendererEvent, data: Array<{ id: string; name: string; arguments: string }>) => callback(data);
+      ipcRenderer.on(channel, handler);
+      return () => { ipcRenderer.removeListener(channel, handler); };
+    },
+    onStreamToolResult: (requestId: string, callback: (result: { id: string; name: string; result: string; isError: boolean }) => void) => {
+      const channel = `ai:stream:tool-result:${requestId}`;
+      const handler = (_event: Electron.IpcRendererEvent, data: { id: string; name: string; result: string; isError: boolean }) => callback(data);
+      ipcRenderer.on(channel, handler);
+      return () => { ipcRenderer.removeListener(channel, handler); };
+    },
   },
 
   // ===== 模型 =====

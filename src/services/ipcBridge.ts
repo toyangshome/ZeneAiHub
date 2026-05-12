@@ -35,6 +35,10 @@ export const api = {
       window.electronAPI.ai.onStreamDone(requestId, cb),
     onStreamError: (requestId: string, cb: (err: string) => void) =>
       window.electronAPI.ai.onStreamError(requestId, cb),
+    onStreamToolCall: (requestId: string, cb: (toolCalls: Array<{ id: string; name: string; arguments: string }>) => void) =>
+      window.electronAPI.ai.onStreamToolCall(requestId, cb),
+    onStreamToolResult: (requestId: string, cb: (result: { id: string; name: string; result: string; isError: boolean }) => void) =>
+      window.electronAPI.ai.onStreamToolResult(requestId, cb),
   },
 
   // 数据库

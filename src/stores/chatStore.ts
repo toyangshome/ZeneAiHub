@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { Conversation, ConversationSummary, Message, StreamConfig } from '@shared/types';
+import type { Conversation, ConversationSummary, Message, StreamConfig, ToolCall } from '@shared/types';
 import { api } from '../services/ipcBridge';
 import { useModelStore } from './modelStore';
 
@@ -231,6 +231,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     }
 
+    // 获取可用的 MCP 工具
+    let mcpTools: StreamConfig['mcpTools'] = undefined;
+    try {
+      const tools = await api.mcp.tool.list();
+      if (tools.length > 0) {
+        mcpTools = tools.map((t) => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema,
+          serverId: t.serverId,
+        }));
+      }
+    } catch {
+      // MCP 未配置时忽略
+    }
+
     // 开始流式对话
     const requestId = uuidv4();
     const assistantMsgId = uuidv4();
@@ -258,6 +274,44 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }));
     });
 
+    const removeToolCall = api.ai.onStreamToolCall(requestId, (toolCalls) => {
+      const toolCallEntries: ToolCall[] = toolCalls.map((tc) => ({
+        id: tc.id,
+        name: tc.name,
+        arguments: tc.arguments,
+      }));
+      set((s) => ({
+        messages: s.messages.map((m) =>
+          m.id === assistantMsgId ? { ...m, toolCalls: [...(m.toolCalls || []), ...toolCallEntries] } : m,
+        ),
+      }));
+    });
+
+    const removeToolResult = api.ai.onStreamToolResult(requestId, (result) => {
+      // 更新 toolCalls 中对应条目的 result
+      set((s) => ({
+        messages: s.messages.map((m) => {
+          if (m.id !== assistantMsgId || !m.toolCalls) return m;
+          return {
+            ...m,
+            toolCalls: m.toolCalls.map((tc) =>
+              tc.id === result.id ? { ...tc, result: result.result } : tc,
+            ),
+          };
+        }),
+      }));
+      // 追加工具结果消息
+      const toolMsg: Message = {
+        id: uuidv4(),
+        conversationId: convId,
+        role: 'tool',
+        content: result.isError ? `[工具错误: ${result.name}] ${result.result}` : `[工具: ${result.name}] ${result.result}`,
+        createdAt: Date.now(),
+        toolCalls: [{ id: result.id, name: result.name, arguments: '', result: result.result }],
+      };
+      set((s) => ({ messages: [...s.messages, toolMsg] }));
+    });
+
     const removeDone = api.ai.onStreamDone(requestId, () => {
       cleanup();
       set({ streaming: false, currentRequestId: null });
@@ -282,6 +336,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       removeChunk();
       removeDone();
       removeError();
+      removeToolCall();
+      removeToolResult();
       _currentCleanup = null;
     };
     _currentCleanup = cleanup;
@@ -311,6 +367,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         topP: modelConfig.topP,
         systemPrompt: finalSystemPrompt,
         thinking: modelConfig.thinking || false,
+        mcpTools,
       };
       await api.ai.startStream(requestId, newMessages, streamConfig);
     } catch (err: unknown) {
