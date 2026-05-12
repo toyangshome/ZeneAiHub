@@ -5,6 +5,7 @@ import { registerFileHandlers } from './fileHandlers';
 import { registerDBHandlers } from './dbHandlers';
 import { registerPromptHandlers } from './promptHandlers';
 import { registerSkillHandlers } from './skillHandlers';
+import { registerMCPHandlers } from './mcpHandlers';
 
 export function registerAllHandlers(): void {
   registerStoreHandlers();
@@ -14,4 +15,5 @@ export function registerAllHandlers(): void {
   registerDBHandlers();
   registerPromptHandlers();
   registerSkillHandlers();
+  registerMCPHandlers();
 }

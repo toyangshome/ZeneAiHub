@@ -1,6 +1,6 @@
 import type {
   Message, StreamConfig, Conversation, FileFilter,
-  PromptTemplate, Skill,
+  PromptTemplate, Skill, MCPServerConfig, MCPTool, MCPToolResult,
 } from '@shared/types';
 
 /** 渲染进程 IPC 调用代理 */
@@ -86,5 +86,25 @@ export const api = {
     get: (id: string) => window.electronAPI.skill.get(id),
     save: (data: Partial<Skill>) => window.electronAPI.skill.save(data),
     delete: (id: string) => window.electronAPI.skill.delete(id),
+  },
+
+  // MCP
+  mcp: {
+    server: {
+      list: (): Promise<(MCPServerConfig & { status: string })[]> =>
+        window.electronAPI.mcp.server.list(),
+      save: (config: MCPServerConfig) => window.electronAPI.mcp.server.save(config),
+      delete: (id: string) => window.electronAPI.mcp.server.delete(id),
+      connect: (id: string): Promise<{ success: boolean; tools: MCPTool[]; status: string }> =>
+        window.electronAPI.mcp.server.connect(id),
+      disconnect: (id: string) => window.electronAPI.mcp.server.disconnect(id),
+    },
+    tool: {
+      list: (serverId?: string): Promise<MCPTool[]> =>
+        window.electronAPI.mcp.tool.list(serverId),
+      call: (serverId: string, toolName: string, args: Record<string, unknown>): Promise<MCPToolResult> =>
+        window.electronAPI.mcp.tool.call(serverId, toolName, args),
+    },
+    status: (): Promise<Record<string, string>> => window.electronAPI.mcp.status(),
   },
 };

@@ -56,4 +56,14 @@ export const IPC = {
   SKILL_GET: 'skill:get',
   SKILL_SAVE: 'skill:save',
   SKILL_DELETE: 'skill:delete',
+
+  // MCP
+  MCP_SERVER_LIST: 'mcp:server:list',
+  MCP_SERVER_SAVE: 'mcp:server:save',
+  MCP_SERVER_DELETE: 'mcp:server:delete',
+  MCP_SERVER_CONNECT: 'mcp:server:connect',
+  MCP_SERVER_DISCONNECT: 'mcp:server:disconnect',
+  MCP_TOOL_LIST: 'mcp:tool:list',
+  MCP_TOOL_CALL: 'mcp:tool:call',
+  MCP_STATUS: 'mcp:status',
 } as const;
