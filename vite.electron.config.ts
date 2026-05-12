@@ -35,6 +35,22 @@ export default defineConfig({
         'stream',
         'util',
         'buffer',
+        // node: 前缀版本（MCP SDK 使用）
+        'node:stream',
+        'node:process',
+        'node:child_process',
+        'node:events',
+        'node:fs',
+        'node:path',
+        'node:os',
+        'node:crypto',
+        'node:url',
+        'node:util',
+        'node:buffer',
+        // MCP SDK 依赖
+        'cross-spawn',
+        'eventsource',
+        'ajv',
       ],
       output: {
         entryFileNames: '[name].cjs',
