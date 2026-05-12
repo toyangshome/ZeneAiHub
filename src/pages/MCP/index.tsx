@@ -7,7 +7,7 @@ import {
 import {
   PlusOutlined, DeleteOutlined, EditOutlined, LinkOutlined, DisconnectOutlined,
   PlayCircleOutlined, ApiOutlined, CheckCircleOutlined, CloseCircleOutlined,
-  LoadingOutlined, ExclamationCircleOutlined, ExperimentOutlined,
+  LoadingOutlined, ExclamationCircleOutlined, ExperimentOutlined, FolderOutlined,
 } from '@ant-design/icons';
 import { useMCPStore } from '../../stores/mcpStore';
 import type { MCPServerConfig, MCPTool, MCPToolResult } from '@shared/types';
@@ -215,6 +215,30 @@ export default function MCPPage() {
     }
   };
 
+  const handleAddLocalFileTools = async () => {
+    // 检查是否已添加过
+    if (servers.some((s) => s.local || s.transport === 'local')) {
+      message.info('文件工具已添加');
+      return;
+    }
+    const config: MCPServerConfig = {
+      id: uuidv4(),
+      name: '本地文件工具',
+      transport: 'local',
+      enabled: true,
+      autoReconnect: false,
+      timeout: 30000,
+      local: true,
+    };
+    try {
+      await saveServer(config);
+      await handleConnect(config.id, config.name);
+      message.success('文件工具已启用（读取/写入/创建目录）');
+    } catch (err: unknown) {
+      message.error(`添加失败: ${(err as Error).message || err}`);
+    }
+  };
+
   const handleSave = async (values: MCPServerConfig) => {
     try {
       await saveServer(values);
@@ -250,6 +274,7 @@ export default function MCPPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>MCP 管理</Typography.Title>
         <Space>
+          <Button icon={<FolderOutlined />} onClick={handleAddLocalFileTools}>文件工具</Button>
           <Button icon={<ExperimentOutlined />} onClick={handleQuickTest}>快速测试</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>添加 Server</Button>
         </Space>
@@ -267,7 +292,7 @@ export default function MCPPage() {
             <Card
               title={
                 <Space>
-                  <ApiOutlined />
+                  {server.local || server.transport === 'local' ? <FolderOutlined /> : <ApiOutlined />}
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {server.name}
                   </span>
@@ -277,18 +302,31 @@ export default function MCPPage() {
               size="small"
             >
               <Descriptions column={1} size="small" styles={{ label: { fontSize: 12, color: 'var(--ant-color-text-secondary)' }, content: { fontSize: 12 } }}>
-                <Descriptions.Item label="传输方式">{server.transport}</Descriptions.Item>
-                <Descriptions.Item label={server.transport === 'stdio' ? '命令' : 'URL'}>
-                  <Typography.Text ellipsis style={{ fontSize: 12 }}>
-                    {server.transport === 'stdio'
-                      ? `${server.command} ${(server.args || []).join(' ')}`
-                      : server.url}
-                  </Typography.Text>
+                <Descriptions.Item label="传输方式">
+                  {server.local || server.transport === 'local' ? '内置工具' : server.transport}
                 </Descriptions.Item>
+                {!(server.local || server.transport === 'local') && (
+                  <Descriptions.Item label={server.transport === 'stdio' ? '命令' : 'URL'}>
+                    <Typography.Text ellipsis style={{ fontSize: 12 }}>
+                      {server.transport === 'stdio'
+                        ? `${server.command} ${(server.args || []).join(' ')}`
+                        : server.url}
+                    </Typography.Text>
+                  </Descriptions.Item>
+                )}
+                {(server.local || server.transport === 'local') && (
+                  <Descriptions.Item label="包含">
+                    <Typography.Text style={{ fontSize: 12 }}>读取文件 / 写入文件 / 创建目录</Typography.Text>
+                  </Descriptions.Item>
+                )}
               </Descriptions>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                 <Space size={4}>
-                  {server.status === 'connected' ? (
+                  {server.local || server.transport === 'local' ? (
+                    <Button size="small" danger icon={<DeleteOutlined />}
+                      onClick={() => deleteServer(server.id)}
+                    >移除</Button>
+                  ) : server.status === 'connected' ? (
                     <Button size="small" icon={<DisconnectOutlined />} onClick={() => handleDisconnect(server.id)}>断开</Button>
                   ) : (
                     <Button size="small" type="primary" icon={<LinkOutlined />}
@@ -298,12 +336,14 @@ export default function MCPPage() {
                     >连接</Button>
                   )}
                 </Space>
-                <Space size={0}>
-                  <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(server)} />
-                  <Popconfirm title="确定删除？" onConfirm={() => deleteServer(server.id)}>
-                    <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </Space>
+                {!(server.local || server.transport === 'local') && (
+                  <Space size={0}>
+                    <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(server)} />
+                    <Popconfirm title="确定删除？" onConfirm={() => deleteServer(server.id)}>
+                      <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Space>
+                )}
               </div>
             </Card>
           </div>
