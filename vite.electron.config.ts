@@ -47,10 +47,6 @@ export default defineConfig({
         'node:url',
         'node:util',
         'node:buffer',
-        // MCP SDK 依赖
-        'cross-spawn',
-        'eventsource',
-        'ajv',
       ],
       output: {
         entryFileNames: '[name].cjs',
