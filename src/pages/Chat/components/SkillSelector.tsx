@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Modal, Form, Input, InputNumber, Switch, Button, App } from 'antd';
+import { Modal, Form, Input, InputNumber, Switch, Button, App, theme } from 'antd';
 import { ThunderboltOutlined, CloseCircleFilled } from '@ant-design/icons';
 import { useSkillStore } from '../../../stores/skillStore';
 import { useChatStore } from '../../../stores/chatStore';
@@ -80,6 +80,7 @@ export function SkillSelector() {
   const setActivePrompt = useChatStore((s) => s.setActivePrompt);
   const removeActivePrompt = useChatStore((s) => s.removeActivePrompt);
   const { message } = App.useApp();
+  const { token } = theme.useToken();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [pos, setPos] = useState<DropdownPos>({ top: 0, left: 0 });
@@ -229,6 +230,7 @@ export function SkillSelector() {
               ...styles.dropdown,
               top: pos.top,
               left: pos.left,
+              background: token.colorBgContainer,
             }}
           >
             <div style={styles.searchWrap}>
@@ -357,7 +359,6 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 9999,
     minWidth: 260,
     maxWidth: 360,
-    background: 'var(--ant-color-bg-container)',
     border: '1px solid var(--ant-color-border-secondary)',
     borderRadius: 16,
     boxShadow: '0 8px 30px rgba(0,0,0,0.12)',

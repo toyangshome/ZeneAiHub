@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Typography, List, Button, Modal, Form, Input, Select, Tag,
+  Typography, Button, Modal, Form, Input, Select, Tag,
   Space, Popconfirm, Switch, App, Card, Divider,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, PlayCircleOutlined } from '@ant-design/icons';
@@ -195,7 +195,7 @@ export default function SkillsPage() {
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto', overflow: 'auto', height: '100%' }}>
+    <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto', minHeight: '100%' }}>
       <style>{`
         .skill-card {
           transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -213,11 +213,14 @@ export default function SkillsPage() {
         </Space>
       </div>
 
-      <List
-        grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3 }}
-        dataSource={skills}
-        renderItem={(item) => (
-          <List.Item>
+      <div className="grid-container" style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+        {skills.length === 0 && (
+          <div style={{ width: '100%', textAlign: 'center', padding: 48, color: 'var(--ant-color-text-secondary)' }}>
+            暂无 Skill，点击上方"新建 Skill"
+          </div>
+        )}
+        {skills.map((item) => (
+          <div key={item.id} className="grid-item">
             <Card
               className="skill-card"
               title={
@@ -243,7 +246,7 @@ export default function SkillsPage() {
                 </Space>
               }
               size="small"
-              style={{ width: '100%', height: 180, display: 'flex', flexDirection: 'column' }}
+              style={{ height: 180, display: 'flex', flexDirection: 'column' }}
               styles={{ body: { overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column' } }}
             >
               <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>
@@ -262,10 +265,9 @@ export default function SkillsPage() {
                 </div>
               </div>
             </Card>
-          </List.Item>
-        )}
-        locale={{ emptyText: '暂无 Skill，点击上方"新建 Skill"' }}
-      />
+          </div>
+        ))}
+      </div>
 
       {/* 编辑弹窗 */}
       <SkillFormModal

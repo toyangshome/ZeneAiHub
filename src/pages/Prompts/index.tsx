@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Typography, List, Button, Modal, Form, Input, Select, Tag,
+  Typography, Button, Modal, Form, Input, Select, Tag,
   Space, Popconfirm, App, Divider, Card, Switch,
 } from 'antd';
 import {
@@ -173,7 +173,7 @@ export default function PromptsPage() {
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto', overflow: 'auto', height: '100%' }}>
+    <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto', minHeight: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>Prompt 模板库</Typography.Title>
         <Space>
@@ -200,52 +200,53 @@ export default function PromptsPage() {
         </Space>
       </div>
 
-      <List
-        grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3 }}
-        dataSource={prompts}
-        renderItem={(item) => (
-          <List.Item>
-            <Card
-                title={
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                    {item.name}
-                  </span>
-                }
-                size="small"
-                style={{ width: '100%' }}
-                styles={{ body: { overflow: 'hidden' } }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-                    <Tag style={{ flexShrink: 0 }}>{item.category}</Tag>
-                    {item.isBuiltIn && <Tag color="blue" style={{ flexShrink: 0 }}>内置</Tag>}
-                    {item.tags.map((t) => <Tag key={t}>{t}</Tag>)}
-                  </div>
-                  <Space size={0} style={{ flexShrink: 0 }}>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={item.isFavorite ? <StarFilled style={{ color: '#fadb14' }} /> : <StarOutlined />}
-                      onClick={() => toggleFavorite(item.id)}
-                      title={item.isFavorite ? '取消收藏' : '收藏'}
-                    />
-                    <Button type="text" size="small" icon={<PlayCircleOutlined />} onClick={() => handleUse(item)} title="使用" />
-                    <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(item)} />
-                    {!item.isBuiltIn && (
-                      <Popconfirm title="确定删除？" onConfirm={() => deletePrompt(item.id)}>
-                        <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-                      </Popconfirm>
-                    )}
-                  </Space>
-                </div>
-                <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>
-                  {item.description || item.content.slice(0, 100)}
-                </Typography.Paragraph>
-              </Card>
-          </List.Item>
+      <div className="grid-container" style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+        {prompts.length === 0 && (
+          <div style={{ width: '100%', textAlign: 'center', padding: 48, color: 'var(--ant-color-text-secondary)' }}>
+            暂无模板，点击上方"新建模板"
+          </div>
         )}
-        locale={{ emptyText: '暂无模板，点击上方"新建模板"' }}
-      />
+        {prompts.map((item) => (
+          <div key={item.id} className="grid-item">
+            <Card
+              title={
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                  {item.name}
+                </span>
+              }
+              size="small"
+              styles={{ body: { overflow: 'hidden' } }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                  <Tag style={{ flexShrink: 0 }}>{item.category}</Tag>
+                  {item.isBuiltIn && <Tag color="blue" style={{ flexShrink: 0 }}>内置</Tag>}
+                  {item.tags.map((t) => <Tag key={t}>{t}</Tag>)}
+                </div>
+                <Space size={0} style={{ flexShrink: 0 }}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={item.isFavorite ? <StarFilled style={{ color: '#fadb14' }} /> : <StarOutlined />}
+                    onClick={() => toggleFavorite(item.id)}
+                    title={item.isFavorite ? '取消收藏' : '收藏'}
+                  />
+                  <Button type="text" size="small" icon={<PlayCircleOutlined />} onClick={() => handleUse(item)} title="使用" />
+                  <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(item)} />
+                  {!item.isBuiltIn && (
+                    <Popconfirm title="确定删除？" onConfirm={() => deletePrompt(item.id)}>
+                      <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  )}
+                </Space>
+              </div>
+              <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>
+                {item.description || item.content.slice(0, 100)}
+              </Typography.Paragraph>
+            </Card>
+          </div>
+        ))}
+      </div>
 
       {/* 编辑弹窗 */}
       <PromptFormModal

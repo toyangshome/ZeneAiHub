@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { App } from 'antd';
+import { App, theme } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useModelStore } from '../../../stores/modelStore';
 import { ModelFormModal, getModePreset } from '../../../components/common/ModelFormModal';
@@ -31,6 +31,7 @@ const addFormDefaults = {
 export function ModelSelector() {
   const { models, currentModelId, setCurrentModel, saveModel } = useModelStore();
   const { message } = App.useApp();
+  const { token } = theme.useToken();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [pos, setPos] = useState<DropdownPos>({ top: 0, right: 0 });
@@ -201,6 +202,7 @@ export function ModelSelector() {
               ...styles.dropdown,
               top: pos.top,
               right: pos.right,
+              background: token.colorBgContainer,
             }}
           >
             {models.length > 5 && (
@@ -341,7 +343,6 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 9999,
     minWidth: 240,
     maxWidth: 340,
-    background: 'var(--ant-color-bg-container)',
     border: '1px solid var(--ant-color-border-secondary)',
     borderRadius: 16,
     boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
