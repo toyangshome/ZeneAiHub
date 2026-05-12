@@ -7,7 +7,7 @@ import {
 import {
   PlusOutlined, DeleteOutlined, EditOutlined, LinkOutlined, DisconnectOutlined,
   PlayCircleOutlined, ApiOutlined, CheckCircleOutlined, CloseCircleOutlined,
-  LoadingOutlined, ExclamationCircleOutlined,
+  LoadingOutlined, ExclamationCircleOutlined, ExperimentOutlined,
 } from '@ant-design/icons';
 import { useMCPStore } from '../../stores/mcpStore';
 import type { MCPServerConfig, MCPTool, MCPToolResult } from '@shared/types';
@@ -196,6 +196,25 @@ export default function MCPPage() {
   const handleAdd = () => { setEditing(null); setModalOpen(true); };
   const handleEdit = (s: MCPServerConfig) => { setEditing(s); setModalOpen(true); };
 
+  const handleQuickTest = async () => {
+    const testConfig: MCPServerConfig = {
+      id: uuidv4(),
+      name: '文件系统工具（测试）',
+      transport: 'stdio',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-filesystem'],
+      enabled: true,
+      autoReconnect: false,
+      timeout: 30000,
+    };
+    try {
+      await saveServer(testConfig);
+      message.success('测试 Server 已添加，点击"连接"开始使用');
+    } catch (err: unknown) {
+      message.error(`添加失败: ${(err as Error).message || err}`);
+    }
+  };
+
   const handleSave = async (values: MCPServerConfig) => {
     try {
       await saveServer(values);
@@ -230,14 +249,17 @@ export default function MCPPage() {
     <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto', minHeight: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>MCP 管理</Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>添加 Server</Button>
+        <Space>
+          <Button icon={<ExperimentOutlined />} onClick={handleQuickTest}>快速测试</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>添加 Server</Button>
+        </Space>
       </div>
 
       {/* Server 卡片列表 */}
       <div className="grid-container" style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
         {servers.length === 0 && !loading && (
           <div style={{ width: '100%' }}>
-            <Empty description={'暂无 MCP Server，点击上方"添加 Server" 开始配置'} />
+            <Empty description={'暂无 MCP Server，点击「快速测试」或「添加 Server」开始配置'} />
           </div>
         )}
         {servers.map((server) => (
