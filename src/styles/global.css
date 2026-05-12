@@ -1,0 +1,225 @@
+@import 'tailwindcss';
+
+/* 全局重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 自定义标题栏拖拽区域 */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* 暗色主题滚动条 */
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 模型选择器下拉动画 */
+@keyframes modelDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 模型选择器下拉面板 - 不透明背景 */
+[data-theme='dark'] .model-dropdown {
+  background: #1e1e1e;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Prompt 选择器下拉面板 - 不透明背景 */
+[data-theme='dark'] .prompt-dropdown {
+  background: #1e1e1e;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* 思考中光标闪烁 */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ====== Menu 组件 ====== */
+.ant-menu-inline {
+  background: transparent !important;
+}
+
+.ant-menu-item {
+  border-radius: 10px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+/* 隐藏选中指示条 */
+.ant-menu-inline .ant-menu-item::after {
+  display: none !important;
+}
+
+.ant-menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme='dark'] .ant-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.ant-menu-item-selected {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme='dark'] .ant-menu-item-selected {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ====== Conversations 组件 ====== */
+.ant-conversations {
+  padding: 4px 8px !important;
+}
+
+.ant-conversations .ant-conversations-item {
+  border-radius: 10px !important;
+  margin-bottom: 2px !important;
+  padding: 8px 12px !important;
+  transition: background-color 0.2s ease !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+.ant-conversations .ant-conversations-item:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme='dark'] .ant-conversations .ant-conversations-item:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.ant-conversations .ant-conversations-item-active {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme='dark'] .ant-conversations .ant-conversations-item-active {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.ant-conversations .ant-conversations-item .ant-conversations-item-label {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* 操作按钮平时隐藏，hover 时显示 */
+.ant-conversations .ant-conversations-item .ant-conversations-menu-btn {
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.ant-conversations .ant-conversations-item:hover .ant-conversations-menu-btn {
+  opacity: 1 !important;
+}
+
+/* 分组标题 */
+.ant-conversations .ant-conversations-group-title {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  color: rgba(0, 0, 0, 0.38) !important;
+  padding: 14px 12px 4px !important;
+}
+
+[data-theme='dark'] .ant-conversations .ant-conversations-group-title {
+  color: rgba(255, 255, 255, 0.38) !important;
+}
+
+/* 列表项 fadeIn 动画 */
+@keyframes conversationFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ant-conversations .ant-conversations-item {
+  animation: conversationFadeIn 0.2s ease forwards;
+}
+
+.ant-conversations .ant-conversations-item:nth-child(1) { animation-delay: 0ms; }
+.ant-conversations .ant-conversations-item:nth-child(2) { animation-delay: 30ms; }
+.ant-conversations .ant-conversations-item:nth-child(3) { animation-delay: 60ms; }
+.ant-conversations .ant-conversations-item:nth-child(4) { animation-delay: 90ms; }
+.ant-conversations .ant-conversations-item:nth-child(5) { animation-delay: 120ms; }
+.ant-conversations .ant-conversations-item:nth-child(6) { animation-delay: 150ms; }
+.ant-conversations .ant-conversations-item:nth-child(7) { animation-delay: 180ms; }
+.ant-conversations .ant-conversations-item:nth-child(8) { animation-delay: 210ms; }
+.ant-conversations .ant-conversations-item:nth-child(9) { animation-delay: 240ms; }
+.ant-conversations .ant-conversations-item:nth-child(10) { animation-delay: 270ms; }
+
+/* ====== Button 微调 ====== */
+.ant-btn-primary {
+  transition: all 0.2s ease !important;
+}
+
+.ant-btn-primary:hover {
+  transform: translateY(-1px);
+}
+
+.ant-btn-text {
+  transition: background-color 0.2s ease !important;
+}
