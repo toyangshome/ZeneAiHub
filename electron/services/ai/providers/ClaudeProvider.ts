@@ -44,6 +44,13 @@ export class ClaudeProvider extends BaseProvider {
     }));
   }
 
+  formatToolResult(toolCallId: string, resultText: string, isError: boolean): FormattedMessage {
+    return {
+      role: 'user',
+      content: [{ type: 'tool_result', tool_use_id: toolCallId, content: resultText, is_error: isError }],
+    };
+  }
+
   async *streamChat(
     messages: FormattedMessage[],
     config: StreamConfig,

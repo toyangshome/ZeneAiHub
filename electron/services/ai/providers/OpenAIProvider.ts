@@ -43,6 +43,10 @@ export class OpenAIProvider extends BaseProvider {
     }));
   }
 
+  formatToolResult(toolCallId: string, resultText: string, _isError: boolean): FormattedMessage {
+    return { role: 'tool', tool_call_id: toolCallId, content: resultText };
+  }
+
   async *streamChat(
     messages: FormattedMessage[],
     config: StreamConfig,
