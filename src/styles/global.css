@@ -223,3 +223,25 @@ body {
 .ant-btn-text {
   transition: background-color 0.2s ease !important;
 }
+
+/* ====== 容器查询网格 ====== */
+.grid-container {
+  container-type: inline-size;
+  container-name: grid;
+}
+
+.grid-container > .grid-item {
+  width: 100%;
+}
+
+@container grid (min-width: 600px) {
+  .grid-container > .grid-item { width: calc(50% - 8px); }
+}
+
+@container grid (min-width: 800px) {
+  .grid-container > .grid-item { width: calc(33.333% - 11px); }
+}
+
+@container grid (min-width: 1000px) {
+  .grid-container > .grid-item { width: calc(25% - 12px); }
+}
