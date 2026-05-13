@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Typography, Input, Button, Tag, Space, Modal, App } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
-import { useAgentStore } from '../../stores/agentStore';
+import { Typography, Input, Button, Space, Modal, App } from 'antd';
+import { SettingOutlined } from '@ant-design/icons';
 import { api } from '../../services/ipcBridge';
 
 const MODEL_PRESETS = [
@@ -15,11 +14,6 @@ type ModelMap = Record<string, string>;
 
 export function ClaudeCodeSettings() {
   const { message } = App.useApp();
-  const cliAvailable = useAgentStore((s) => s.cliAvailable);
-  const cliVersion = useAgentStore((s) => s.cliVersion);
-  const cliCheckError = useAgentStore((s) => s.cliCheckError);
-  const checkCli = useAgentStore((s) => s.checkCli);
-  const getCliVersion = useAgentStore((s) => s.getCliVersion);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
@@ -49,13 +43,10 @@ export function ClaudeCodeSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const currentModel = useAgentStore.getState().agentModel;
       await Promise.all([
         api.store.set('claude-api-key', apiKey.trim()),
         api.store.set('claude-base-url', baseUrl.trim()),
         api.store.set('claude-models', models),
-        // 同步当前选中的模型到 claude-model
-        currentModel ? api.store.set('claude-model', currentModel) : Promise.resolve(),
       ]);
       message.success('配置已保存');
       setModalOpen(false);
@@ -70,19 +61,7 @@ export function ClaudeCodeSettings() {
     <div>
       <Typography.Title level={5}>Claude Code</Typography.Title>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        {cliAvailable ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            已内置 {cliVersion && `v${cliVersion}`}
-          </Tag>
-        ) : (
-          <Tag icon={<CloseCircleOutlined />} color="error">
-            {cliCheckError || '不可用'}
-          </Tag>
-        )}
-        {baseUrl && <Tag>代理: {baseUrl}</Tag>}
-        <Button size="small" icon={<ReloadOutlined />} onClick={() => { checkCli(); getCliVersion(); }}>
-          重新检测
-        </Button>
+        {baseUrl && <span style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)' }}>代理: {baseUrl}</span>}
         <Button size="small" icon={<SettingOutlined />} onClick={handleOpen}>
           配置
         </Button>

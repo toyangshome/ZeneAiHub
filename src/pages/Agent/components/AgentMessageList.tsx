@@ -1,22 +1,18 @@
 import { Typography, Tag, theme } from 'antd';
-import { ApiOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { ApiOutlined } from '@ant-design/icons';
 import { useAgentStore } from '../../../stores/agentStore';
 import { useAutoScroll } from '../../Chat/hooks/useAutoScroll';
 import { ThinkingBlock } from './blocks/ThinkingBlock';
 import { ToolUseBlock } from './blocks/ToolUseBlock';
 import { ToolResultBlock } from './blocks/ToolResultBlock';
 import { TextBlock } from './blocks/TextBlock';
-import { ApprovalCard } from './ApprovalCard';
 import type { AgentContentBlock, AgentMessage, AgentToolResultBlock } from '@shared/types/agent';
 
 export function AgentMessageList() {
   const messages = useAgentStore((s) => s.messages);
   const status = useAgentStore((s) => s.status);
   const error = useAgentStore((s) => s.error);
-  const pendingApproval = useAgentStore((s) => s.pendingApproval);
-  const approveTool = useAgentStore((s) => s.approveTool);
-  const denyTool = useAgentStore((s) => s.denyTool);
-  const { containerRef } = useAutoScroll([messages.length, status, pendingApproval]);
+  const { containerRef } = useAutoScroll([messages.length, status]);
 
   return (
     <div ref={containerRef} style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
@@ -29,15 +25,6 @@ export function AgentMessageList() {
           ))}
           {status === 'running' && <ThinkingIndicator />}
           {status === 'error' && error && <ErrorBanner message={error} />}
-          {pendingApproval && (
-            <ApprovalCard
-              toolName={pendingApproval.toolName}
-              toolInput={pendingApproval.toolInput}
-              reason={pendingApproval.reason}
-              onApprove={approveTool}
-              onDeny={denyTool}
-            />
-          )}
         </div>
       )}
     </div>
@@ -62,7 +49,6 @@ function AgentMessageBubble({ message }: { message: AgentMessage }) {
     );
   }
 
-  // 收集已有结果的 tool_use id
   const resultMap = new Map<string, AgentToolResultBlock>();
   for (const b of message.blocks) {
     if (b.type === 'tool_result') {
@@ -91,11 +77,8 @@ function AgentMessageBubble({ message }: { message: AgentMessage }) {
       {message.cost !== undefined && message.cost > 0 && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <Tag style={{ fontSize: 11, borderRadius: 8 }}>${message.cost.toFixed(4)}</Tag>
-          {message.durationMs > 0 && (
+          {message.durationMs && message.durationMs > 0 && (
             <Tag style={{ fontSize: 11, borderRadius: 8 }}>{(message.durationMs / 1000).toFixed(1)}s</Tag>
-          )}
-          {message.numTurns && message.numTurns > 1 && (
-            <Tag style={{ fontSize: 11, borderRadius: 8 }}>{message.numTurns} 轮</Tag>
           )}
         </div>
       )}
@@ -120,34 +103,7 @@ function AgentBlockRenderer({ block, hasResult }: { block: AgentContentBlock; ha
 
 function EmptyState() {
   const { token } = theme.useToken();
-  const cliAvailable = useAgentStore((s) => s.cliAvailable);
-  const cliCheckError = useAgentStore((s) => s.cliCheckError);
   const cwd = useAgentStore((s) => s.cwd);
-
-  if (!cliAvailable) {
-    return (
-      <div style={{
-        height: '100%', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 16,
-      }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: 16,
-          background: token.colorErrorBg, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', fontSize: 28,
-        }}>
-          <ApiOutlined style={{ color: token.colorError }} />
-        </div>
-        <Typography.Title level={5} style={{ margin: 0 }}>
-          Claude CLI 未安装
-        </Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: 13, textAlign: 'center', maxWidth: 360 }}>
-          {cliCheckError || '内置 Claude CLI 不可用'}
-          <br />
-          请前往「设置 → Claude Code」检查配置
-        </Typography.Text>
-      </div>
-    );
-  }
 
   if (!cwd) {
     return (
@@ -166,7 +122,7 @@ function EmptyState() {
           开始 Agent 会话
         </Typography.Title>
         <Typography.Text type="secondary" style={{ fontSize: 14, textAlign: 'center', maxWidth: 400 }}>
-          点击右上角「选择项目」按钮，指定工作目录后<br />
+          点击下方「选择项目」按钮，指定工作目录后<br />
           输入指令，AI 将自主完成编程任务
         </Typography.Text>
       </div>
@@ -229,7 +185,6 @@ function ErrorBanner({ message: errorMsg }: { message: string }) {
       background: token.colorErrorBg, border: `1px solid ${token.colorErrorBorder}`,
       fontSize: 13, lineHeight: 1.6, color: token.colorError,
     }}>
-      <CloseCircleOutlined style={{ marginTop: 2, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
         {errorMsg}
       </div>

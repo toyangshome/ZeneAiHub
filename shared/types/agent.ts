@@ -1,4 +1,4 @@
-/** Agent 消息块类型（对应 Claude Code CLI content blocks） */
+/** Agent 消息块类型 */
 
 export interface AgentTextBlock {
   type: 'text';
@@ -31,42 +31,6 @@ export type AgentContentBlock =
   | AgentToolUseBlock
   | AgentToolResultBlock;
 
-/** CLI stream-json 事件类型 */
-export type AgentStreamEventType = 'system' | 'assistant' | 'user' | 'result' | 'error';
-
-export interface AgentStreamEvent {
-  type: AgentStreamEventType;
-  subtype?: string;
-  model?: string;
-  cwd?: string;
-  message?: {
-    id: string;
-    role: 'assistant';
-    content: AgentContentBlock[];
-  };
-  message_user?: {
-    role: 'user';
-    content: AgentContentBlock[];
-  };
-  result?: string;
-  total_cost_usd?: number;
-  duration_ms?: number;
-  num_turns?: number;
-  is_error?: boolean;
-  error?: string;
-}
-
-/** Agent 会话状态 */
-export type AgentSessionStatus = 'idle' | 'running' | 'waiting_input' | 'error' | 'stopped';
-
-export interface AgentSession {
-  sessionId: string;
-  cwd: string;
-  status: AgentSessionStatus;
-  model?: string;
-  startedAt: number;
-}
-
 /** 前端展示用的消息 */
 export interface AgentMessage {
   id: string;
@@ -79,14 +43,4 @@ export interface AgentMessage {
   numTurns?: number;
 }
 
-/** Agent 会话配置 */
-export interface AgentSessionConfig {
-  cwd: string;
-  message: string;
-  resume?: string;
-  allowedTools?: string[];
-  maxTurns?: number;
-  apiKey?: string;
-  baseUrl?: string;
-  model?: string;
-}
+// TODO: 重新设计 Agent 会话配置和流事件类型

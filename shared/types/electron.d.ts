@@ -10,7 +10,6 @@ import type { PromptTemplate, VariableDef } from './prompt';
 import type { Skill } from './skill';
 import type { FileParseResult } from './file';
 import type { MCPServerConfig, MCPTool, MCPToolResult } from './mcp';
-import type { AgentSessionConfig, AgentStreamEvent } from './agent';
 
 export interface ElectronAPI {
   // 系统
@@ -113,15 +112,8 @@ export interface ElectronAPI {
 
   // Agent
   agent: {
-    checkCli(): Promise<{ available: boolean; version?: string; path?: string; error?: string }>;
-    getCliVersion(): Promise<string | undefined>;
     selectDirectory(): Promise<string | null>;
-    sessionStart(config: AgentSessionConfig): Promise<{ sessionId: string }>;
-    sessionCancel(sessionId: string): Promise<void>;
-    sessionStop(sessionId: string): Promise<void>;
-    onStreamEvent(sessionId: string, callback: (event: AgentStreamEvent) => void): () => void;
-    onStreamDone(sessionId: string, callback: () => void): () => void;
-    onStreamError(sessionId: string, callback: (error: string) => void): () => void;
+    // TODO: 添加新的 Agent 类型定义
   };
 
   // 主题

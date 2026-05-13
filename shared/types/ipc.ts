@@ -68,10 +68,6 @@ export const IPC = {
   MCP_STATUS: 'mcp:status',
 
   // Agent
-  AGENT_CHECK_CLI: 'agent:check-cli',
-  AGENT_GET_CLI_VERSION: 'agent:get-cli-version',
   AGENT_SELECT_DIRECTORY: 'agent:select-directory',
-  AGENT_SESSION_START: 'agent:session:start',
-  AGENT_SESSION_CANCEL: 'agent:session:cancel',
-  AGENT_SESSION_STOP: 'agent:session:stop',
+  // TODO: 添加新的 Agent IPC 通道
 } as const;
