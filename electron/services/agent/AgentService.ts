@@ -128,10 +128,6 @@ class AgentService {
           }
 
           safeSend(sender, `agent:session:stream:${sessionId}`, event);
-
-          if (event.type === 'result') {
-            safeSend(sender, `agent:session:done:${sessionId}`);
-          }
         } catch {
           console.warn(`[Agent 非JSON ${sessionId.slice(0, 8)}]`, trimmed.slice(0, 300));
         }
