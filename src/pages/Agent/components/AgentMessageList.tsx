@@ -1,17 +1,22 @@
 import { Typography, Tag, theme } from 'antd';
-import { ApiOutlined } from '@ant-design/icons';
+import { ApiOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useAgentStore } from '../../../stores/agentStore';
 import { useAutoScroll } from '../../Chat/hooks/useAutoScroll';
 import { ThinkingBlock } from './blocks/ThinkingBlock';
 import { ToolUseBlock } from './blocks/ToolUseBlock';
 import { ToolResultBlock } from './blocks/ToolResultBlock';
 import { TextBlock } from './blocks/TextBlock';
+import { ApprovalCard } from './ApprovalCard';
 import type { AgentContentBlock, AgentMessage, AgentToolResultBlock } from '@shared/types/agent';
 
 export function AgentMessageList() {
   const messages = useAgentStore((s) => s.messages);
   const status = useAgentStore((s) => s.status);
-  const { containerRef } = useAutoScroll([messages.length, status]);
+  const error = useAgentStore((s) => s.error);
+  const pendingApproval = useAgentStore((s) => s.pendingApproval);
+  const approveTool = useAgentStore((s) => s.approveTool);
+  const denyTool = useAgentStore((s) => s.denyTool);
+  const { containerRef } = useAutoScroll([messages.length, status, pendingApproval]);
 
   return (
     <div ref={containerRef} style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
@@ -23,6 +28,16 @@ export function AgentMessageList() {
             <AgentMessageBubble key={msg.id} message={msg} />
           ))}
           {status === 'running' && <ThinkingIndicator />}
+          {status === 'error' && error && <ErrorBanner message={error} />}
+          {pendingApproval && (
+            <ApprovalCard
+              toolName={pendingApproval.toolName}
+              toolInput={pendingApproval.toolInput}
+              reason={pendingApproval.reason}
+              onApprove={approveTool}
+              onDeny={denyTool}
+            />
+          )}
         </div>
       )}
     </div>
@@ -117,10 +132,10 @@ function EmptyState() {
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: 16,
-          background: 'var(--ant-color-error-bg)', display: 'flex',
+          background: token.colorErrorBg, display: 'flex',
           alignItems: 'center', justifyContent: 'center', fontSize: 28,
         }}>
-          <ApiOutlined style={{ color: 'var(--ant-color-error)' }} />
+          <ApiOutlined style={{ color: token.colorError }} />
         </div>
         <Typography.Title level={5} style={{ margin: 0 }}>
           Claude CLI 未安装
@@ -142,10 +157,10 @@ function EmptyState() {
       }}>
         <div style={{
           width: 72, height: 72, borderRadius: 20,
-          background: 'var(--ant-color-primary-bg)', display: 'flex',
+          background: token.colorPrimaryBg, display: 'flex',
           alignItems: 'center', justifyContent: 'center', fontSize: 32,
         }}>
-          <ApiOutlined style={{ color: 'var(--ant-color-primary)' }} />
+          <ApiOutlined style={{ color: token.colorPrimary }} />
         </div>
         <Typography.Title level={4} style={{ margin: 0 }}>
           开始 Agent 会话
@@ -165,10 +180,10 @@ function EmptyState() {
     }}>
       <div style={{
         width: 72, height: 72, borderRadius: 20,
-        background: 'var(--ant-color-primary-bg)', display: 'flex',
+        background: token.colorPrimaryBg, display: 'flex',
         alignItems: 'center', justifyContent: 'center', fontSize: 32,
       }}>
-        <ApiOutlined style={{ color: 'var(--ant-color-primary)' }} />
+        <ApiOutlined style={{ color: token.colorPrimary }} />
       </div>
       <Typography.Title level={4} style={{ margin: 0 }}>
         准备就绪
@@ -191,15 +206,33 @@ function EmptyState() {
 }
 
 function ThinkingIndicator() {
+  const { token } = theme.useToken();
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0',
-      color: 'var(--ant-color-text-tertiary)', fontSize: 13,
+      color: token.colorTextTertiary, fontSize: 13,
     }}>
       <span className="agent-thinking-dots">
         <span /><span /><span />
       </span>
       Agent 正在思考和执行...
+    </div>
+  );
+}
+
+function ErrorBanner({ message: errorMsg }: { message: string }) {
+  const { token } = theme.useToken();
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 10,
+      padding: '10px 14px', borderRadius: 12,
+      background: token.colorErrorBg, border: `1px solid ${token.colorErrorBorder}`,
+      fontSize: 13, lineHeight: 1.6, color: token.colorError,
+    }}>
+      <CloseCircleOutlined style={{ marginTop: 2, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+        {errorMsg}
+      </div>
     </div>
   );
 }

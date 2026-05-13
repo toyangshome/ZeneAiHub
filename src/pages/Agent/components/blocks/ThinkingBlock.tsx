@@ -9,7 +9,7 @@ export function ThinkingBlock({ thinking }: { thinking: string }) {
 
   return (
     <div style={{
-      border: '1px dashed var(--ant-color-border)', borderRadius: 12, overflow: 'hidden',
+      border: `1px dashed ${token.colorBorder}`, borderRadius: 12, overflow: 'hidden',
       transition: 'border-color 0.2s',
     }}>
       <div
@@ -19,21 +19,21 @@ export function ThinkingBlock({ thinking }: { thinking: string }) {
           background: token.colorBgTextHover, cursor: 'pointer', userSelect: 'none',
         }}
       >
-        <BulbOutlined style={{ color: 'var(--ant-color-warning)', fontSize: 14 }} />
+        <BulbOutlined style={{ color: token.colorWarning, fontSize: 14 }} />
         <Typography.Text style={{
-          fontSize: 12, color: 'var(--ant-color-text-secondary)', flex: 1,
+          fontSize: 12, color: token.colorTextSecondary, flex: 1,
           fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {expanded ? '思考过程' : preview}
         </Typography.Text>
-        <span style={{ color: 'var(--ant-color-text-quaternary)', fontSize: 10, flexShrink: 0 }}>
+        <span style={{ color: token.colorTextQuaternary, fontSize: 10, flexShrink: 0 }}>
           {expanded ? <DownOutlined /> : <RightOutlined />}
         </span>
       </div>
       {expanded && (
         <div style={{
           padding: '12px 14px', fontSize: 13, lineHeight: 1.8, whiteSpace: 'pre-wrap',
-          color: 'var(--ant-color-text-secondary)', borderTop: '1px dashed var(--ant-color-border)',
+          color: token.colorTextSecondary, borderTop: `1px dashed ${token.colorBorder}`,
           maxHeight: 500, overflow: 'auto',
         }}>
           {thinking}

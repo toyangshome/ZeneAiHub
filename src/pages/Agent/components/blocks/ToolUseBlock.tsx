@@ -44,7 +44,7 @@ export function ToolUseBlock({ name, input, hasResult }: ToolUseBlockProps) {
 
   return (
     <div style={{
-      border: '1px solid var(--ant-color-border-secondary)', borderRadius: 12,
+      border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 12,
       overflow: 'hidden', background: token.colorBgTextHover,
     }}>
       <div
@@ -56,13 +56,13 @@ export function ToolUseBlock({ name, input, hasResult }: ToolUseBlockProps) {
       >
         <div style={{
           width: 28, height: 28, borderRadius: 8,
-          background: hasResult ? 'var(--ant-color-success-bg)' : 'var(--ant-color-primary-bg)',
+          background: hasResult ? token.colorSuccessBg : token.colorPrimaryBg,
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
           {hasResult ? (
-            <ToolOutlined style={{ color: 'var(--ant-color-success)', fontSize: 14 }} />
+            <ToolOutlined style={{ color: token.colorSuccess, fontSize: 14 }} />
           ) : (
-            <LoadingOutlined style={{ color: 'var(--ant-color-primary)', fontSize: 14 }} />
+            <LoadingOutlined style={{ color: token.colorPrimary, fontSize: 14 }} />
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -80,7 +80,7 @@ export function ToolUseBlock({ name, input, hasResult }: ToolUseBlockProps) {
             </Typography.Text>
           )}
         </div>
-        <span style={{ color: 'var(--ant-color-text-quaternary)', fontSize: 10, flexShrink: 0 }}>
+        <span style={{ color: token.colorTextQuaternary, fontSize: 10, flexShrink: 0 }}>
           {expanded ? <DownOutlined /> : <RightOutlined />}
         </span>
       </div>
@@ -88,7 +88,7 @@ export function ToolUseBlock({ name, input, hasResult }: ToolUseBlockProps) {
         <div style={{
           padding: '10px 14px', fontFamily: 'var(--ant-font-family)', fontSize: 12, lineHeight: 1.6,
           whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 300, overflow: 'auto',
-          color: 'var(--ant-color-text-secondary)', borderTop: '1px solid var(--ant-color-border-secondary)',
+          color: token.colorTextSecondary, borderTop: `1px solid ${token.colorBorderSecondary}`,
         }}>
           {JSON.stringify(input, null, 2)}
         </div>

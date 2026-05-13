@@ -6,17 +6,18 @@ import { useModelStore } from '../../../stores/modelStore';
 import { ModelFormModal, getModePreset } from '../../../components/common/ModelFormModal';
 import type { ProviderType, ModelConfigInput } from '@shared/types';
 
-const providerMeta: Record<ProviderType, { label: string; color: string; bg: string }> = {
-  anthropic: { label: 'Anthropic', color: '#d97706', bg: '#fef3c7' },
-  openai: { label: 'OpenAI', color: '#10b981', bg: '#d1fae5' },
-  google: { label: 'Google', color: '#3b82f6', bg: '#dbeafe' },
-  ollama: { label: 'Ollama', color: '#8b5cf6', bg: '#ede9fe' },
-  lmstudio: { label: 'LM Studio', color: '#ec4899', bg: '#fce7f3' },
-  custom: { label: 'Custom', color: '#6b7280', bg: '#f3f4f6' },
+const providerMeta: Record<ProviderType, { label: string; color: string }> = {
+  anthropic: { label: 'Anthropic', color: '#d97706' },
+  openai: { label: 'OpenAI', color: '#10b981' },
+  google: { label: 'Google', color: '#3b82f6' },
+  ollama: { label: 'Ollama', color: '#8b5cf6' },
+  lmstudio: { label: 'LM Studio', color: '#ec4899' },
+  custom: { label: 'Custom', color: '#6b7280' },
 };
 
 interface DropdownPos {
-  top: number;
+  top?: number;
+  bottom?: number;
   right: number;
 }
 
@@ -28,13 +29,13 @@ const addFormDefaults = {
   topP: 1,
 };
 
-export function ModelSelector() {
+export function ModelSelector({ placement = 'bottom' }: { placement?: 'top' | 'bottom' } = {}) {
   const { models, currentModelId, setCurrentModel, saveModel } = useModelStore();
   const { message } = App.useApp();
   const { token } = theme.useToken();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [pos, setPos] = useState<DropdownPos>({ top: 0, right: 0 });
+  const [pos, setPos] = useState<DropdownPos>({ right: 0 });
   const [addModalOpen, setAddModalOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -45,8 +46,12 @@ export function ModelSelector() {
   const updatePos = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
-  }, []);
+    if (placement === 'top') {
+      setPos({ bottom: window.innerHeight - rect.top + 4, right: window.innerWidth - rect.right });
+    } else {
+      setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+  }, [placement]);
 
   const grouped = useMemo(() => {
     const map = new Map<ProviderType, typeof models>();
@@ -148,7 +153,16 @@ export function ModelSelector() {
   if (models.length === 0) {
     return (
       <>
-        <button style={styles.emptyBtn} onClick={handleOpenAdd}>
+        <button
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '5px 12px', border: `1px dashed ${token.colorBorder}`,
+            borderRadius: 10, background: 'transparent', cursor: 'pointer',
+            fontSize: 12, color: token.colorPrimary, transition: 'all 0.15s',
+            outline: 'none', fontFamily: 'inherit',
+          }}
+          onClick={handleOpenAdd}
+        >
           <PlusOutlined style={{ fontSize: 12 }} />
           添加模型
         </button>
@@ -168,26 +182,29 @@ export function ModelSelector() {
     <>
       <button
         ref={triggerRef}
-        style={styles.trigger}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '5px 10px', border: 'none', borderRadius: 10,
+          background: 'transparent', cursor: 'pointer', fontSize: 13,
+          fontWeight: 500, color: token.colorText, lineHeight: 1.4,
+          transition: 'background 0.15s', outline: 'none', fontFamily: 'inherit',
+        }}
         onClick={() => setOpen(!open)}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.background = 'var(--ant-color-fill-secondary)';
+          (e.currentTarget as HTMLElement).style.background = token.colorFillSecondary;
         }}
         onMouseLeave={(e) => {
           (e.currentTarget as HTMLElement).style.background = 'transparent';
         }}
       >
-        <span style={{ ...styles.dot, background: meta.color }} />
-        <span style={styles.triggerText}>{current?.name || '选择模型'}</span>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, flexShrink: 0 }} />
+        <span style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {current?.name || '选择模型'}
+        </span>
         <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          style={{
-            ...styles.chevron,
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-          }}
+          width="12" height="12" viewBox="0 0 12 12" fill="none"
+          style={{ flexShrink: 0, transition: 'transform 0.2s ease', color: token.colorTextTertiary, marginTop: 1,
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
         >
           <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -199,21 +216,31 @@ export function ModelSelector() {
             ref={dropdownRef}
             className="model-dropdown"
             style={{
-              ...styles.dropdown,
-              top: pos.top,
-              right: pos.right,
+              position: 'fixed', zIndex: 9999,
+              ...pos,
+              minWidth: 240, maxWidth: 340,
               background: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              borderRadius: 16, boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+              overflow: 'hidden', animation: 'modelDropdownIn 0.15s ease-out',
             }}
           >
             {models.length > 5 && (
-              <div style={styles.searchWrap}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 12px', borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                color: token.colorText,
+              }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
                   <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5" />
                   <path d="M9.5 9.5L12.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
                 <input
                   ref={inputRef}
-                  style={styles.searchInput}
+                  style={{
+                    flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                    fontSize: 13, color: token.colorText, fontFamily: 'inherit',
+                  }}
                   placeholder="搜索模型..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -221,14 +248,23 @@ export function ModelSelector() {
               </div>
             )}
 
-            <div style={styles.list}>
-              {filteredGroups.size === 0 && <div style={styles.noResult}>无匹配模型</div>}
+            <div style={{ maxHeight: 280, overflowY: 'auto', padding: '4px 0' }}>
+              {filteredGroups.size === 0 && (
+                <div style={{ padding: '16px 14px', fontSize: 13, color: token.colorTextTertiary, textAlign: 'center' }}>
+                  无匹配模型
+                </div>
+              )}
               {Array.from(filteredGroups.entries()).map(([provider, list]) => {
                 const pMeta = providerMeta[provider];
                 return (
                   <div key={provider}>
-                    <div style={styles.groupLabel}>
-                      <span style={{ ...styles.dot, background: pMeta.color, width: 6, height: 6 }} />
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '8px 14px 4px', fontSize: 11, fontWeight: 600,
+                      color: token.colorTextTertiary, textTransform: 'uppercase' as const,
+                      letterSpacing: '0.03em',
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: pMeta.color, flexShrink: 0 }} />
                       {pMeta.label}
                     </div>
                     {list.map((m) => {
@@ -236,27 +272,49 @@ export function ModelSelector() {
                       return (
                         <button
                           key={m.id}
-                          style={{ ...styles.item, ...(isActive ? styles.itemActive : {}) }}
+                          style={{
+                            display: 'flex', alignItems: 'center', width: '100%', gap: 8,
+                            padding: '8px 14px', border: 'none', cursor: 'pointer',
+                            textAlign: 'left', transition: 'background 0.1s',
+                            outline: 'none', fontFamily: 'inherit',
+                            color: token.colorText,
+                            background: isActive ? token.colorPrimaryBg : 'transparent',
+                          }}
                           onClick={() => {
                             setCurrentModel(m.id);
                             setOpen(false);
                             setSearch('');
                           }}
                           onMouseEnter={(e) => {
-                            if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--ant-color-fill-secondary)';
+                            if (!isActive) (e.currentTarget as HTMLElement).style.background = token.colorFillSecondary;
                           }}
                           onMouseLeave={(e) => {
                             if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent';
                           }}
                         >
-                          <div style={styles.itemMain}>
-                            <span style={styles.itemName}>{m.name}</span>
-                            {m.thinking && <span style={styles.thinkingTag}>思考</span>}
+                          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{
+                              fontSize: 13, fontWeight: 500,
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>
+                              {m.name}
+                            </span>
+                            {m.thinking && (
+                              <span style={{
+                                fontSize: 10, padding: '1px 5px', borderRadius: 6,
+                                background: token.colorWarningBg, color: token.colorWarning,
+                                fontWeight: 500, flexShrink: 0,
+                              }}>
+                                思考
+                              </span>
+                            )}
                           </div>
-                          <span style={styles.itemModel}>{m.model}</span>
+                          <span style={{ fontSize: 11, color: token.colorTextTertiary, flexShrink: 0 }}>
+                            {m.model}
+                          </span>
                           {isActive && (
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                              <path d="M3 7L5.5 9.5L11 4" stroke="var(--ant-color-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                              <path d="M3 7L5.5 9.5L11 4" stroke={token.colorPrimary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           )}
                         </button>
@@ -267,8 +325,17 @@ export function ModelSelector() {
               })}
             </div>
 
-            <div style={styles.footer}>
-              <button style={styles.addBtn} onClick={handleOpenAdd}>
+            <div style={{ padding: '6px 10px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+              <button
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  width: '100%', padding: '6px 0', border: 'none', borderRadius: 6,
+                  background: 'transparent', cursor: 'pointer', fontSize: 12,
+                  color: token.colorPrimary, transition: 'background 0.1s',
+                  outline: 'none', fontFamily: 'inherit',
+                }}
+                onClick={handleOpenAdd}
+              >
                 <PlusOutlined style={{ fontSize: 12 }} />
                 添加模型
               </button>
@@ -286,173 +353,3 @@ export function ModelSelector() {
     </>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  emptyBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '5px 12px',
-    border: '1px dashed var(--ant-color-border)',
-    borderRadius: 10,
-    background: 'transparent',
-    cursor: 'pointer',
-    fontSize: 12,
-    color: 'var(--ant-color-primary)',
-    transition: 'all 0.15s',
-    outline: 'none',
-    fontFamily: 'inherit',
-  },
-  trigger: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '5px 10px',
-    border: 'none',
-    borderRadius: 10,
-    background: 'transparent',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 500,
-    color: 'var(--ant-color-text)',
-    lineHeight: 1.4,
-    transition: 'background 0.15s',
-    outline: 'none',
-    fontFamily: 'inherit',
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
-  triggerText: {
-    maxWidth: 180,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  chevron: {
-    flexShrink: 0,
-    transition: 'transform 0.2s ease',
-    color: 'var(--ant-color-text-tertiary)',
-    marginTop: 1,
-  },
-  dropdown: {
-    position: 'fixed',
-    zIndex: 9999,
-    minWidth: 240,
-    maxWidth: 340,
-    border: '1px solid var(--ant-color-border-secondary)',
-    borderRadius: 16,
-    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-    overflow: 'hidden',
-    animation: 'modelDropdownIn 0.15s ease-out',
-  },
-  searchWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '10px 12px',
-    borderBottom: '1px solid var(--ant-color-border-secondary)',
-    color: 'var(--ant-color-text)',
-  },
-  searchInput: {
-    flex: 1,
-    border: 'none',
-    outline: 'none',
-    background: 'transparent',
-    fontSize: 13,
-    color: 'var(--ant-color-text)',
-    fontFamily: 'inherit',
-  },
-  list: {
-    maxHeight: 280,
-    overflowY: 'auto',
-    padding: '4px 0',
-  },
-  groupLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '8px 14px 4px',
-    fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--ant-color-text-tertiary)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.03em',
-  },
-  item: {
-    display: 'flex',
-    alignItems: 'center',
-    width: '100%',
-    gap: 8,
-    padding: '8px 14px',
-    border: 'none',
-    background: 'transparent',
-    cursor: 'pointer',
-    textAlign: 'left',
-    transition: 'background 0.1s',
-    outline: 'none',
-    fontFamily: 'inherit',
-    color: 'var(--ant-color-text)',
-  },
-  itemActive: {
-    background: 'var(--ant-color-primary-bg)',
-  },
-  itemMain: {
-    flex: 1,
-    minWidth: 0,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-  },
-  itemName: {
-    fontSize: 13,
-    fontWeight: 500,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  thinkingTag: {
-    fontSize: 10,
-    padding: '1px 5px',
-    borderRadius: 6,
-    background: 'var(--ant-color-warning-bg)',
-    color: 'var(--ant-color-warning)',
-    fontWeight: 500,
-    flexShrink: 0,
-  },
-  itemModel: {
-    fontSize: 11,
-    color: 'var(--ant-color-text-tertiary)',
-    flexShrink: 0,
-  },
-  noResult: {
-    padding: '16px 14px',
-    fontSize: 13,
-    color: 'var(--ant-color-text-tertiary)',
-    textAlign: 'center',
-  },
-  footer: {
-    padding: '6px 10px',
-    borderTop: '1px solid var(--ant-color-border-secondary)',
-  },
-  addBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    width: '100%',
-    padding: '6px 0',
-    border: 'none',
-    borderRadius: 6,
-    background: 'transparent',
-    cursor: 'pointer',
-    fontSize: 12,
-    color: 'var(--ant-color-primary)',
-    transition: 'background 0.1s',
-    outline: 'none',
-    fontFamily: 'inherit',
-  },
-};

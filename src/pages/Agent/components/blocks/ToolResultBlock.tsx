@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Typography } from 'antd';
+import { Typography, theme } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
 
 interface ToolResultBlockProps {
@@ -14,16 +14,21 @@ function truncate(str: string, max: number): string {
 }
 
 export function ToolResultBlock({ content, is_error }: ToolResultBlockProps) {
+  const { token } = theme.useToken();
   const [expanded, setExpanded] = useState(false);
   const hasContent = content && content.trim().length > 0;
   const lineCount = hasContent ? content.split('\n').length : 0;
   const isError = !!is_error;
 
+  const bg = isError ? token.colorErrorBg : token.colorSuccessBg;
+  const border = isError ? token.colorErrorBorder : token.colorSuccessBorder;
+  const iconColor = isError ? token.colorError : token.colorSuccess;
+
   return (
     <div style={{
       borderRadius: 10, overflow: 'hidden', marginLeft: 24,
-      background: isError ? 'var(--ant-color-error-bg)' : 'var(--ant-color-success-bg)',
-      border: `1px solid ${isError ? 'var(--ant-color-error-border)' : 'var(--ant-color-success-border)'}`,
+      background: bg,
+      border: `1px solid ${border}`,
     }}>
       <div
         onClick={() => hasContent && setExpanded(!expanded)}
@@ -33,13 +38,12 @@ export function ToolResultBlock({ content, is_error }: ToolResultBlockProps) {
         }}
       >
         {isError ? (
-          <CloseCircleOutlined style={{ color: 'var(--ant-color-error)', fontSize: 13 }} />
+          <CloseCircleOutlined style={{ color: iconColor, fontSize: 13 }} />
         ) : (
-          <CheckCircleOutlined style={{ color: 'var(--ant-color-success)', fontSize: 13 }} />
+          <CheckCircleOutlined style={{ color: iconColor, fontSize: 13 }} />
         )}
         <Typography.Text style={{
-          fontSize: 12, flex: 1,
-          color: isError ? 'var(--ant-color-error)' : 'var(--ant-color-success)',
+          fontSize: 12, flex: 1, color: iconColor,
         }}>
           {isError ? '执行失败' : hasContent ? truncate(content, 60) : '执行成功'}
         </Typography.Text>
@@ -49,7 +53,7 @@ export function ToolResultBlock({ content, is_error }: ToolResultBlockProps) {
           </Typography.Text>
         )}
         {hasContent && (
-          <span style={{ color: 'var(--ant-color-text-quaternary)', fontSize: 10, flexShrink: 0 }}>
+          <span style={{ color: token.colorTextQuaternary, fontSize: 10, flexShrink: 0 }}>
             {expanded ? <DownOutlined /> : <RightOutlined />}
           </span>
         )}
@@ -58,8 +62,8 @@ export function ToolResultBlock({ content, is_error }: ToolResultBlockProps) {
         <div style={{
           padding: '10px 14px', fontSize: 12, lineHeight: 1.6,
           whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 400, overflow: 'auto',
-          color: 'var(--ant-color-text-secondary)',
-          borderTop: `1px solid ${isError ? 'var(--ant-color-error-border)' : 'var(--ant-color-success-border)'}`,
+          color: token.colorTextSecondary,
+          borderTop: `1px solid ${border}`,
         }}>
           {content}
         </div>

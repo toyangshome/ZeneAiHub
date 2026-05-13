@@ -41,24 +41,33 @@ export function checkClaudeCli(): CliCheckResult {
 
 /** 异步获取版本号（仅用户手动触发时调用） */
 export async function getCliVersion(): Promise<string | undefined> {
+  // 已缓存版本号 → 直接返回
+  if (_cached?.version) return _cached.version;
+
   const { spawn } = await import('child_process');
   const cliPath = getBundledCliPath();
   if (!existsSync(cliPath)) return undefined;
 
   return new Promise((resolve) => {
-    const proc = spawn(cliPath, ['--version'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    const proc = spawn(cliPath, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '';
-    proc.stdout.on('data', (d: Buffer) => { output += d.toString(); });
-    proc.on('close', () => {
-      const match = output.match(/(\d+\.\d+\.\d+)/);
-      const version = match ? match[1] : output.trim() || undefined;
+    let settled = false;
+    const done = (version?: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       if (version && _cached) {
         _cached.version = version;
       }
       resolve(version);
+    };
+    proc.stdout.on('data', (d: Buffer) => { output += d.toString(); });
+    proc.on('close', () => {
+      const match = output.match(/(\d+\.\d+\.\d+)/);
+      done(match ? match[1] : output.trim() || undefined);
     });
-    proc.on('error', () => resolve(undefined));
+    proc.on('error', () => done());
     // 5 秒超时
-    setTimeout(() => { proc.kill(); resolve(undefined); }, 5000);
+    const timer = setTimeout(() => { proc.kill(); done(); }, 5000);
   });
 }

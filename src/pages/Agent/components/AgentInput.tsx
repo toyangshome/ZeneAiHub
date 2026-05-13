@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { Sender } from '@ant-design/x';
 import { App } from 'antd';
 import { useAgentStore } from '../../../stores/agentStore';
+import { AgentModelSelector } from './AgentModelSelector';
+import { ProjectSelector } from './ProjectSelector';
 
 export function AgentInput() {
   const { message } = App.useApp();
@@ -26,17 +28,13 @@ export function AgentInput() {
     }
   }, [value, sendMessage, message]);
 
-  const handleCancel = useCallback(() => {
-    stopSession();
-  }, [stopSession]);
-
   return (
     <div style={{ padding: '0 24px 16px' }}>
       <Sender
         value={value}
         onChange={setValue}
         onSubmit={handleSend}
-        onCancel={handleCancel}
+        onCancel={stopSession}
         loading={isRunning}
         disabled={disabled}
         placeholder={
@@ -45,6 +43,17 @@ export function AgentInput() {
           '描述你的编程任务...'
         }
         autoSize={{ minRows: 1, maxRows: 6 }}
+        actions={() => null}
+        allowSpeech={false}
+        footer={({ components: { SendButton: Send } }) => (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <AgentModelSelector placement="top" />
+              <ProjectSelector />
+            </div>
+            <Send disabled={disabled || !value.trim()} />
+          </div>
+        )}
       />
     </div>
   );

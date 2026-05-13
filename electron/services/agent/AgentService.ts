@@ -9,6 +9,7 @@ interface SessionContext {
   cwd: string;
   status: AgentSessionStatus;
   stdoutBuffer: string;
+  stderrBuffer: string;
   sender: Electron.WebContents;
 }
 
@@ -35,6 +36,7 @@ class AgentService {
 
   startSession(config: AgentSessionConfig, sender: Electron.WebContents): string {
     const sessionId = uuidv4();
+    console.log(`[Agent] 启动会话 ${sessionId.slice(0, 8)} resume=${config.resume?.slice(0, 8) || 'none'} tools=${config.allowedTools?.join(',') || 'none'}`);
     const args = ['--output-format', 'stream-json', '--verbose'];
 
     if (config.resume) {
@@ -57,14 +59,10 @@ class AgentService {
 
     const cliPath = getBundledCliPath();
 
-    // 合并环境变量，注入 API key 和自定义 URL
+    // 合并环境变量：配置值覆盖全局值，未配置则继承全局
     const env: Record<string, string | undefined> = { ...process.env };
-    if (config.apiKey) {
-      env.ANTHROPIC_API_KEY = config.apiKey;
-    }
-    if (config.baseUrl) {
-      env.ANTHROPIC_BASE_URL = config.baseUrl;
-    }
+    if (config.apiKey) env.ANTHROPIC_API_KEY = config.apiKey;
+    if (config.baseUrl) env.ANTHROPIC_BASE_URL = config.baseUrl;
 
     const proc = spawn(cliPath, args, {
       cwd: config.cwd,
@@ -78,6 +76,7 @@ class AgentService {
       cwd: config.cwd,
       status: 'running',
       stdoutBuffer: '',
+      stderrBuffer: '',
       sender,
     };
     this.sessions.set(sessionId, ctx);
@@ -93,6 +92,10 @@ class AgentService {
         if (!trimmed) continue;
         try {
           const event: AgentStreamEvent = JSON.parse(trimmed);
+          // 错误且 result 为空时，用 stderr 补充错误信息
+          if (event.type === 'result' && event.is_error && !event.result && ctx.stderrBuffer.trim()) {
+            event.result = ctx.stderrBuffer.trim();
+          }
           safeSend(sender, `agent:session:stream:${sessionId}`, event);
 
           if (event.type === 'result') {
@@ -100,26 +103,20 @@ class AgentService {
             safeSend(sender, `agent:session:done:${sessionId}`);
           }
         } catch {
-          console.warn('[Agent] 非 JSON 输出:', trimmed.slice(0, 200));
+          console.warn(`[Agent 非JSON ${sessionId.slice(0, 8)}]`, trimmed.slice(0, 500));
         }
       }
     });
 
     proc.stderr.on('data', (data: Buffer) => {
-      const text = data.toString().trim();
-      if (!text) return;
-      // Claude CLI 将进度信息也输出到 stderr，过滤已知的非错误信息
-      const noisePatterns = [
-        'Loaded local', 'Using', 'Authenticat', 'API Key',
-        'Claude Code', 'version', 'node:', 'npm warn',
-      ];
-      const isNoise = noisePatterns.some(p => text.includes(p));
-      if (!isNoise && !text.startsWith('npm')) {
-        console.warn('[Agent stderr]', text.slice(0, 300));
-      }
+      const text = data.toString();
+      ctx.stderrBuffer += text;
+      const trimmed = text.trim();
+      if (trimmed) console.warn(`[Agent stderr ${sessionId.slice(0, 8)}]`, trimmed.slice(0, 500));
     });
 
     proc.on('close', (code) => {
+      console.log(`[Agent] 会话 ${sessionId.slice(0, 8)} 进程退出 code=${code}`);
       ctx.status = code === 0 ? 'stopped' : 'error';
       if (code !== 0 && code !== null) {
         safeSend(sender, `agent:session:error:${sessionId}`, `进程异常退出 (code: ${code})`);
@@ -131,7 +128,7 @@ class AgentService {
         } catch { /* ignore */ }
       }
       // 安全网：如果进程退出时还没有 result 事件，通知前端结束
-      if (ctx.status !== 'idle') {
+      if ((ctx.status as AgentSessionStatus) !== 'idle') {
         safeSend(sender, `agent:session:done:${sessionId}`);
       }
       this.sessions.delete(sessionId);
@@ -148,14 +145,16 @@ class AgentService {
 
   cancelCurrentTurn(sessionId: string): void {
     const ctx = this.sessions.get(sessionId);
-    if (!ctx) return;
+    if (!ctx) { console.log(`[Agent] cancel: 会话 ${sessionId.slice(0, 8)} 不存在`); return; }
+    console.log(`[Agent] 取消会话 ${sessionId.slice(0, 8)}`);
     killProcess(ctx.process);
     this.sessions.delete(sessionId);
   }
 
   stopSession(sessionId: string): void {
     const ctx = this.sessions.get(sessionId);
-    if (!ctx) return;
+    if (!ctx) { console.log(`[Agent] stop: 会话 ${sessionId.slice(0, 8)} 不存在`); return; }
+    console.log(`[Agent] 停止会话 ${sessionId.slice(0, 8)}`);
     killProcess(ctx.process);
     this.sessions.delete(sessionId);
   }

@@ -4,6 +4,15 @@ import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, SettingOutlin
 import { useAgentStore } from '../../stores/agentStore';
 import { api } from '../../services/ipcBridge';
 
+const MODEL_PRESETS = [
+  { key: 'opus', label: 'Opus', defaultModel: 'claude-opus-4-20250514' },
+  { key: 'sonnet4', label: 'Sonnet 4', defaultModel: 'claude-sonnet-4-5-20250514' },
+  { key: 'sonnet37', label: 'Sonnet 3.7', defaultModel: 'claude-sonnet-3-7-20250219' },
+  { key: 'haiku', label: 'Haiku', defaultModel: 'claude-haiku-3-5-20241022' },
+] as const;
+
+type ModelMap = Record<string, string>;
+
 export function ClaudeCodeSettings() {
   const { message } = App.useApp();
   const cliAvailable = useAgentStore((s) => s.cliAvailable);
@@ -15,7 +24,7 @@ export function ClaudeCodeSettings() {
   const [modalOpen, setModalOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
-  const [model, setModel] = useState('');
+  const [models, setModels] = useState<ModelMap>({});
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
@@ -23,11 +32,11 @@ export function ClaudeCodeSettings() {
     const [key, url, m] = await Promise.all([
       api.store.get<string>('claude-api-key', ''),
       api.store.get<string>('claude-base-url', ''),
-      api.store.get<string>('claude-model', ''),
+      api.store.get<ModelMap>('claude-models', {}),
     ]);
     setApiKey(key || '');
     setBaseUrl(url || '');
-    setModel(m || '');
+    setModels(m || {});
   };
 
   useEffect(() => { loadConfig(); }, []);
@@ -40,10 +49,13 @@ export function ClaudeCodeSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const currentModel = useAgentStore.getState().agentModel;
       await Promise.all([
         api.store.set('claude-api-key', apiKey.trim()),
         api.store.set('claude-base-url', baseUrl.trim()),
-        api.store.set('claude-model', model.trim()),
+        api.store.set('claude-models', models),
+        // 同步当前选中的模型到 claude-model
+        currentModel ? api.store.set('claude-model', currentModel) : Promise.resolve(),
       ]);
       message.success('配置已保存');
       setModalOpen(false);
@@ -68,7 +80,6 @@ export function ClaudeCodeSettings() {
           </Tag>
         )}
         {baseUrl && <Tag>代理: {baseUrl}</Tag>}
-        {model && <Tag>模型: {model}</Tag>}
         <Button size="small" icon={<ReloadOutlined />} onClick={() => { checkCli(); getCliVersion(); }}>
           重新检测
         </Button>
@@ -111,13 +122,25 @@ export function ClaudeCodeSettings() {
             </Typography.Text>
           </div>
           <div>
-            <Typography.Text strong>模型</Typography.Text>
-            <Input
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder="留空使用默认模型，例：claude-sonnet-4-5-20250514"
-              style={{ marginTop: 6 }}
-            />
+            <Typography.Text strong>模型映射</Typography.Text>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              {MODEL_PRESETS.map((p) => (
+                <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Typography.Text style={{ width: 80, flexShrink: 0, fontSize: 13 }}>
+                    {p.label}
+                  </Typography.Text>
+                  <Input
+                    size="small"
+                    value={models[p.key] || ''}
+                    onChange={(e) => setModels((prev) => ({ ...prev, [p.key]: e.target.value }))}
+                    placeholder={p.defaultModel}
+                  />
+                </div>
+              ))}
+            </div>
+            <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+              留空则使用官方默认模型名
+            </Typography.Text>
           </div>
         </Space>
       </Modal>

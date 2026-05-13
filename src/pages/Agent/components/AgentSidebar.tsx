@@ -2,23 +2,25 @@ import { Typography, Button, Space, Tag, theme } from 'antd';
 import { ClearOutlined, ApiOutlined, StopOutlined } from '@ant-design/icons';
 import { useAgentStore } from '../../../stores/agentStore';
 
+const statusMap: Record<string, { color: string; label: string }> = {
+  idle: { color: 'default', label: '空闲' },
+  running: { color: 'processing', label: '运行中' },
+  waiting_input: { color: 'success', label: '等待输入' },
+  error: { color: 'error', label: '错误' },
+};
+
 export function AgentSidebar() {
   const { token } = theme.useToken();
   const status = useAgentStore((s) => s.status);
-  const model = useAgentStore((s) => s.model);
+  const agentModel = useAgentStore((s) => s.agentModel);
   const currentCost = useAgentStore((s) => s.currentCost);
   const currentDuration = useAgentStore((s) => s.currentDuration);
+  const currentTurns = useAgentStore((s) => s.currentTurns);
   const cwd = useAgentStore((s) => s.cwd);
   const cliVersion = useAgentStore((s) => s.cliVersion);
   const stopSession = useAgentStore((s) => s.stopSession);
   const clearMessages = useAgentStore((s) => s.clearMessages);
 
-  const statusMap: Record<string, { color: string; label: string }> = {
-    idle: { color: 'default', label: '空闲' },
-    running: { color: 'processing', label: '运行中' },
-    waiting_input: { color: 'success', label: '等待输入' },
-    error: { color: 'error', label: '错误' },
-  };
   const st = statusMap[status] || statusMap.idle;
 
   return (
@@ -43,9 +45,11 @@ export function AgentSidebar() {
           </InfoItem>
         )}
 
-        {model && (
+        {agentModel && (
           <InfoItem label="模型">
-            <Typography.Text style={{ fontSize: 13 }}>{model}</Typography.Text>
+            <Typography.Text ellipsis={{ tooltip: agentModel }} style={{ fontSize: 13 }}>
+              {agentModel}
+            </Typography.Text>
           </InfoItem>
         )}
 
@@ -55,11 +59,19 @@ export function AgentSidebar() {
           </InfoItem>
         )}
 
-        {(currentCost > 0 || currentDuration > 0) && (
+        {(currentCost > 0 || currentDuration > 0 || currentTurns > 0) && (
           <div style={{
             background: token.colorBgTextHover, borderRadius: 10, padding: '10px 12px',
             display: 'flex', flexDirection: 'column', gap: 6,
           }}>
+            {currentTurns > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>轮次</Typography.Text>
+                <Typography.Text style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
+                  {currentTurns}
+                </Typography.Text>
+              </div>
+            )}
             {currentCost > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>费用</Typography.Text>
