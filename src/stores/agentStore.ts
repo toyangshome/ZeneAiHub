@@ -7,6 +7,9 @@ import { api } from '../services/ipcBridge';
 
 let _currentCleanup: (() => void) | null = null;
 
+/** 当前是否正在处理一个 assistant 回合（用于合并多个 assistant 事件到同一个气泡） */
+let _isInAssistantTurn = false;
+
 // ========== 工具函数 ==========
 
 /** 补全当前 session 中未收到 tool_result 的 tool_use 为已完成状态 */
@@ -40,34 +43,36 @@ function handleStreamEvent(sessionId: string, event: AgentStreamEvent) {
 
     case 'assistant':
       if (event.message?.content) {
-        const msgId = event.message.id || uuidv4();
         useAgentStore.setState((s) => {
-          const existingIdx = s.messages.findIndex((m) => m.id === msgId);
-          let newMessages: AgentMessage[];
+          const newContent = event.message!.content.filter((b) => b.type !== 'tool_result');
 
-          if (existingIdx !== -1) {
-            // 合并到已有消息（流式增量）
-            const existing = s.messages[existingIdx];
-            const newBlocks = event.message!.content.filter((nb) => {
-              if (nb.type === 'tool_result') return false;
+          // 合并到当前回合的 assistant 消息中（thinking / tool_use / text 合为一个气泡）
+          if (_isInAssistantTurn) {
+            const lastIdx = s.messages.length - 1;
+            if (lastIdx < 0 || s.messages[lastIdx].role !== 'assistant') return {};
+
+            const existing = s.messages[lastIdx];
+            const deduped = newContent.filter((nb) => {
               if (nb.type === 'tool_use') return !existing.blocks.some(b => b.type === 'tool_use' && b.id === nb.id);
               if (nb.type === 'text') return !existing.blocks.some(b => b.type === 'text' && b.text === nb.text);
               if (nb.type === 'thinking') return !existing.blocks.some(b => b.type === 'thinking' && b.thinking === nb.thinking);
               return true;
             });
-            if (newBlocks.length === 0) return {};
-            newMessages = [...s.messages];
-            newMessages[existingIdx] = { ...existing, blocks: [...existing.blocks, ...newBlocks] };
-          } else {
-            // 新消息
-            const msg: AgentMessage = {
-              id: msgId, sessionId, role: 'assistant',
-              blocks: event.message!.content, createdAt: Date.now(),
-            };
-            newMessages = [...s.messages, msg];
+            if (deduped.length === 0) return {};
+
+            const msgs = [...s.messages];
+            msgs[lastIdx] = { ...existing, blocks: [...existing.blocks, ...deduped] };
+            return { messages: msgs };
           }
 
-          return { messages: newMessages, status: 'running' as const };
+          // 新回合的第一个 assistant 事件：创建气泡
+          _isInAssistantTurn = true;
+          const msg: AgentMessage = {
+            id: event.message!.id || uuidv4(),
+            sessionId, role: 'assistant',
+            blocks: newContent, createdAt: Date.now(),
+          };
+          return { messages: [...s.messages, msg], status: 'running' as const };
         });
       }
       break;
@@ -252,6 +257,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       blocks: [{ type: 'text', text: content }],
       createdAt: Date.now(),
     };
+    _isInAssistantTurn = false; // 重置回合标志，新用户消息开始新回合
     set((s) => ({
       messages: [...s.messages, userMsg],
       status: 'running',
@@ -307,6 +313,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   clearMessages: () => {
     const { sessionId, status } = get();
+    _isInAssistantTurn = false;
     if (status === 'running' && sessionId) {
       _currentCleanup?.();
       _currentCleanup = null;
