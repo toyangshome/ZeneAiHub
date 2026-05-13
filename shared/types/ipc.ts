@@ -66,4 +66,12 @@ export const IPC = {
   MCP_TOOL_LIST: 'mcp:tool:list',
   MCP_TOOL_CALL: 'mcp:tool:call',
   MCP_STATUS: 'mcp:status',
+
+  // Agent
+  AGENT_CHECK_CLI: 'agent:check-cli',
+  AGENT_GET_CLI_VERSION: 'agent:get-cli-version',
+  AGENT_SELECT_DIRECTORY: 'agent:select-directory',
+  AGENT_SESSION_START: 'agent:session:start',
+  AGENT_SESSION_CANCEL: 'agent:session:cancel',
+  AGENT_SESSION_STOP: 'agent:session:stop',
 } as const;

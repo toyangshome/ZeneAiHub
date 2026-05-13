@@ -245,3 +245,49 @@ body {
 @container grid (min-width: 1000px) {
   .grid-container > .grid-item { width: calc(25% - 12px); }
 }
+
+/* ====== Agent 思考动画 ====== */
+.agent-thinking-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.agent-thinking-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ant-color-primary);
+  animation: agentDotPulse 1.4s ease-in-out infinite;
+}
+
+.agent-thinking-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.agent-thinking-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes agentDotPulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Agent 消息淡入 */
+@keyframes agentMsgFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

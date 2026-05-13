@@ -1,6 +1,7 @@
 import type {
   Message, StreamConfig, Conversation, FileFilter,
   PromptTemplate, Skill, MCPServerConfig, MCPTool, MCPToolResult,
+  AgentSessionConfig, AgentStreamEvent,
 } from '@shared/types';
 
 /** 渲染进程 IPC 调用代理 */
@@ -90,6 +91,22 @@ export const api = {
     get: (id: string) => window.electronAPI.skill.get(id),
     save: (data: Partial<Skill>) => window.electronAPI.skill.save(data),
     delete: (id: string) => window.electronAPI.skill.delete(id),
+  },
+
+  // Agent
+  agent: {
+    checkCli: () => window.electronAPI.agent.checkCli(),
+    getCliVersion: () => window.electronAPI.agent.getCliVersion(),
+    selectDirectory: () => window.electronAPI.agent.selectDirectory(),
+    sessionStart: (config: AgentSessionConfig) => window.electronAPI.agent.sessionStart(config),
+    sessionCancel: (sessionId: string) => window.electronAPI.agent.sessionCancel(sessionId),
+    sessionStop: (sessionId: string) => window.electronAPI.agent.sessionStop(sessionId),
+    onStreamEvent: (sessionId: string, cb: (event: AgentStreamEvent) => void) =>
+      window.electronAPI.agent.onStreamEvent(sessionId, cb),
+    onStreamDone: (sessionId: string, cb: () => void) =>
+      window.electronAPI.agent.onStreamDone(sessionId, cb),
+    onStreamError: (sessionId: string, cb: (error: string) => void) =>
+      window.electronAPI.agent.onStreamError(sessionId, cb),
   },
 
   // MCP

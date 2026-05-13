@@ -13,6 +13,7 @@ import SettingsPage from './pages/Settings';
 import PromptsPage from './pages/Prompts';
 import SkillsPage from './pages/Skills';
 import MCPPage from './pages/MCP';
+import AgentPage from './pages/Agent';
 
 export default function App() {
   const { themeConfig } = useTheme();
@@ -34,6 +35,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Navigate to="/chat" replace />} />
                 <Route path="/chat" element={<ChatPage />} />
+                <Route path="/agent" element={<AgentPage />} />
                 <Route path="/prompts" element={<PromptsPage />} />
                 <Route path="/skills" element={<SkillsPage />} />
                 <Route path="/mcp" element={<MCPPage />} />

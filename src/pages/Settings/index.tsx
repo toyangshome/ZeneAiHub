@@ -2,6 +2,7 @@ import { Typography, Divider } from 'antd';
 import { GeneralSettings } from './GeneralSettings';
 import { AvatarSettings } from './AvatarSettings';
 import { ModelSettings } from './ModelSettings';
+import { ClaudeCodeSettings } from './ClaudeCodeSettings';
 
 export default function SettingsPage() {
   return (
@@ -9,6 +10,8 @@ export default function SettingsPage() {
       <Typography.Title level={3}>设置</Typography.Title>
 
       <GeneralSettings />
+      <Divider />
+      <ClaudeCodeSettings />
       <Divider />
       <AvatarSettings />
       <Divider />

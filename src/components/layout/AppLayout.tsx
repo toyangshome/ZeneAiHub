@@ -6,6 +6,7 @@ import {
   ThunderboltOutlined,
   MenuOutlined,
   ApiOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TitleBar } from './TitleBar';
@@ -20,6 +21,7 @@ interface AppLayoutProps {
 
 const menuItems = [
   { key: '/chat', icon: <MessageOutlined />, label: '对话' },
+  { key: '/agent', icon: <RobotOutlined />, label: 'Agent' },
   { key: '/prompts', icon: <BookOutlined />, label: 'Prompt 模板' },
   { key: '/skills', icon: <ThunderboltOutlined />, label: 'Skill' },
   { key: '/mcp', icon: <ApiOutlined />, label: 'MCP' },
