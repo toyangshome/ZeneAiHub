@@ -1,5 +1,10 @@
 import { Typography, Tag, theme } from 'antd';
-import { ApiOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import {
+  ApiOutlined, CloseCircleOutlined,
+  ReadOutlined, EditOutlined, FileAddOutlined,
+  CodeOutlined, SearchOutlined, GlobalOutlined,
+  ToolOutlined,
+} from '@ant-design/icons';
 import { useAgentStore } from '../../../stores/agentStore';
 import { useAutoScroll } from '../../Chat/hooks/useAutoScroll';
 import { ThinkingBlock } from './blocks/ThinkingBlock';
@@ -7,6 +12,18 @@ import { ToolUseBlock } from './blocks/ToolUseBlock';
 import { ToolResultBlock } from './blocks/ToolResultBlock';
 import { TextBlock } from './blocks/TextBlock';
 import type { AgentContentBlock, AgentMessage, AgentToolResultBlock } from '@shared/types/agent';
+
+// 工具名 → 图标映射
+const TOOL_ICONS: Record<string, React.ReactNode> = {
+  Read: <ReadOutlined />,
+  Edit: <EditOutlined />,
+  Write: <FileAddOutlined />,
+  Bash: <CodeOutlined />,
+  Glob: <SearchOutlined />,
+  Grep: <SearchOutlined />,
+  WebFetch: <GlobalOutlined />,
+  WebSearch: <GlobalOutlined />,
+};
 
 export function AgentMessageList() {
   const messages = useAgentStore((s) => s.messages);
@@ -50,9 +67,15 @@ function AgentMessageBubble({ message }: { message: AgentMessage }) {
   }
 
   const resultMap = new Map<string, AgentToolResultBlock>();
+  const usedToolNames: string[] = [];
+  const seen = new Set<string>();
   for (const b of message.blocks) {
     if (b.type === 'tool_result') {
       resultMap.set(b.tool_use_id, b);
+    }
+    if (b.type === 'tool_use' && !seen.has(b.name)) {
+      seen.add(b.name);
+      usedToolNames.push(b.name);
     }
   }
 
@@ -74,14 +97,30 @@ function AgentMessageBubble({ message }: { message: AgentMessage }) {
           )
         ))}
       </div>
-      {message.cost !== undefined && message.cost > 0 && (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <Tag style={{ fontSize: 11, borderRadius: 8 }}>${message.cost.toFixed(4)}</Tag>
-          {message.durationMs && message.durationMs > 0 && (
-            <Tag style={{ fontSize: 11, borderRadius: 8 }}>{(message.durationMs / 1000).toFixed(1)}s</Tag>
-          )}
-        </div>
-      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        {usedToolNames.map((name) => (
+          <Tag
+            key={name}
+            style={{
+              fontSize: 11, borderRadius: 8, margin: 0,
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              padding: '1px 8px', lineHeight: '18px',
+              background: token.colorBgTextHover,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              color: token.colorTextSecondary,
+            }}
+          >
+            {TOOL_ICONS[name] || <ToolOutlined />}
+            {name}
+          </Tag>
+        ))}
+        {message.cost !== undefined && message.cost > 0 && (
+          <Tag style={{ fontSize: 11, borderRadius: 8, margin: 0 }}>${message.cost.toFixed(4)}</Tag>
+        )}
+        {message.durationMs && message.durationMs > 0 && (
+          <Tag style={{ fontSize: 11, borderRadius: 8, margin: 0 }}>{(message.durationMs / 1000).toFixed(1)}s</Tag>
+        )}
+      </div>
     </div>
   );
 }
