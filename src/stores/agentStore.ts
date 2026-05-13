@@ -243,7 +243,18 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   setCwd: (cwd) => set({ cwd }),
 
-  setPermissionMode: (mode) => set({ permissionMode: mode }),
+  setPermissionMode: (mode) => {
+    const { sessionId, status } = get();
+    // 切换模式时需要重建进程，否则新模式不生效
+    if (sessionId && status !== 'idle') {
+      _currentCleanup?.();
+      _currentCleanup = null;
+      api.agent.sessionStop(sessionId).catch(() => {});
+      set({ permissionMode: mode, sessionId: null, status: 'idle' });
+    } else {
+      set({ permissionMode: mode });
+    }
+  },
 
   sendMessage: async (content) => {
     const { cwd, sessionId, status } = get();
