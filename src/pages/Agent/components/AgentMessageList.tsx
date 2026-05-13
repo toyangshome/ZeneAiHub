@@ -1,5 +1,5 @@
 import { Typography, Tag, theme } from 'antd';
-import { ApiOutlined } from '@ant-design/icons';
+import { ApiOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useAgentStore } from '../../../stores/agentStore';
 import { useAutoScroll } from '../../Chat/hooks/useAutoScroll';
 import { ThinkingBlock } from './blocks/ThinkingBlock';
@@ -103,7 +103,34 @@ function AgentBlockRenderer({ block, hasResult }: { block: AgentContentBlock; ha
 
 function EmptyState() {
   const { token } = theme.useToken();
+  const cliAvailable = useAgentStore((s) => s.cliAvailable);
+  const cliCheckError = useAgentStore((s) => s.cliCheckError);
   const cwd = useAgentStore((s) => s.cwd);
+
+  if (!cliAvailable) {
+    return (
+      <div style={{
+        height: '100%', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 16,
+      }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 16,
+          background: token.colorErrorBg, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', fontSize: 28,
+        }}>
+          <ApiOutlined style={{ color: token.colorError }} />
+        </div>
+        <Typography.Title level={5} style={{ margin: 0 }}>
+          Claude CLI 未安装
+        </Typography.Title>
+        <Typography.Text type="secondary" style={{ fontSize: 13, textAlign: 'center', maxWidth: 360 }}>
+          {cliCheckError || '内置 Claude CLI 不可用'}
+          <br />
+          请前往「设置 → Claude Code」检查配置
+        </Typography.Text>
+      </div>
+    );
+  }
 
   if (!cwd) {
     return (
@@ -185,6 +212,7 @@ function ErrorBanner({ message: errorMsg }: { message: string }) {
       background: token.colorErrorBg, border: `1px solid ${token.colorErrorBorder}`,
       fontSize: 13, lineHeight: 1.6, color: token.colorError,
     }}>
+      <CloseCircleOutlined style={{ marginTop: 2, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
         {errorMsg}
       </div>

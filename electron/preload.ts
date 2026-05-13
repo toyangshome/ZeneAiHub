@@ -120,8 +120,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ===== Agent =====
   agent: {
+    checkCli: () => ipcRenderer.invoke('agent:check-cli'),
+    getCliVersion: () => ipcRenderer.invoke('agent:get-cli-version'),
     selectDirectory: () => ipcRenderer.invoke('agent:select-directory'),
-    // TODO: 添加新的 Agent IPC 通道
+    sessionCreate: (config: unknown) => ipcRenderer.invoke('agent:session:create', config),
+    sessionSend: (sessionId: string, content: string) =>
+      ipcRenderer.invoke('agent:session:send', sessionId, content),
+    sessionStop: (sessionId: string) =>
+      ipcRenderer.invoke('agent:session:stop', sessionId),
+    onStreamEvent: (sessionId: string, callback: (event: unknown) => void) => {
+      const channel = `agent:session:stream:${sessionId}`;
+      const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+      ipcRenderer.on(channel, handler);
+      return () => { ipcRenderer.removeListener(channel, handler); };
+    },
+    onStreamDone: (sessionId: string, callback: () => void) => {
+      const channel = `agent:session:done:${sessionId}`;
+      const handler = () => callback();
+      ipcRenderer.on(channel, handler);
+      return () => { ipcRenderer.removeListener(channel, handler); };
+    },
+    onStreamError: (sessionId: string, callback: (error: string) => void) => {
+      const channel = `agent:session:error:${sessionId}`;
+      const handler = (_event: Electron.IpcRendererEvent, err: string) => callback(err);
+      ipcRenderer.on(channel, handler);
+      return () => { ipcRenderer.removeListener(channel, handler); };
+    },
   },
 
   // ===== MCP =====

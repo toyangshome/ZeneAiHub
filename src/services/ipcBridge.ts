@@ -1,6 +1,7 @@
 import type {
   Message, StreamConfig, Conversation, FileFilter,
   PromptTemplate, Skill, MCPServerConfig, MCPTool, MCPToolResult,
+  AgentSessionConfig, AgentStreamEvent,
 } from '@shared/types';
 
 /** 渲染进程 IPC 调用代理 */
@@ -94,8 +95,21 @@ export const api = {
 
   // Agent
   agent: {
+    checkCli: () => window.electronAPI.agent.checkCli(),
+    getCliVersion: () => window.electronAPI.agent.getCliVersion(),
     selectDirectory: () => window.electronAPI.agent.selectDirectory(),
-    // TODO: 添加新的 Agent IPC 方法
+    sessionCreate: (config: AgentSessionConfig) =>
+      window.electronAPI.agent.sessionCreate(config),
+    sessionSend: (sessionId: string, content: string) =>
+      window.electronAPI.agent.sessionSend(sessionId, content),
+    sessionStop: (sessionId: string) =>
+      window.electronAPI.agent.sessionStop(sessionId),
+    onStreamEvent: (sessionId: string, cb: (event: AgentStreamEvent) => void) =>
+      window.electronAPI.agent.onStreamEvent(sessionId, cb),
+    onStreamDone: (sessionId: string, cb: () => void) =>
+      window.electronAPI.agent.onStreamDone(sessionId, cb),
+    onStreamError: (sessionId: string, cb: (error: string) => void) =>
+      window.electronAPI.agent.onStreamError(sessionId, cb),
   },
 
   // MCP

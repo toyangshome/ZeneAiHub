@@ -1,4 +1,4 @@
-/** Agent 消息块类型 */
+/** Agent 消息块类型（对应 Claude Code CLI content blocks） */
 
 export interface AgentTextBlock {
   type: 'text';
@@ -31,6 +31,60 @@ export type AgentContentBlock =
   | AgentToolUseBlock
   | AgentToolResultBlock;
 
+/** CLI stream-json 事件类型 */
+export type AgentStreamEventType = 'system' | 'assistant' | 'user' | 'result' | 'error';
+
+export interface AgentStreamEvent {
+  type: AgentStreamEventType;
+  subtype?: string;
+
+  // system init 事件
+  cwd?: string;
+  session_id?: string;
+  tools?: string[];
+  model?: string;
+  permissionMode?: string;
+
+  // assistant 事件
+  message?: {
+    id: string;
+    role: 'assistant';
+    model?: string;
+    content: AgentContentBlock[];
+    usage?: {
+      input_tokens: number;
+      output_tokens: number;
+    };
+  };
+  parent_tool_use_id?: string | null;
+
+  // user 事件（工具执行结果回显）
+  message_user?: {
+    role: 'user';
+    content: AgentContentBlock[];
+  };
+
+  // result 事件
+  result?: string;
+  is_error?: boolean;
+  total_cost_usd?: number;
+  duration_ms?: number;
+  duration_api_ms?: number;
+  num_turns?: number;
+  stop_reason?: string;
+  terminal_reason?: string;
+  permission_denials?: unknown[];
+  usage?: {
+    input_tokens: number;
+    output_tokens: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+  };
+
+  // error 事件
+  error?: string;
+}
+
 /** 前端展示用的消息 */
 export interface AgentMessage {
   id: string;
@@ -43,4 +97,14 @@ export interface AgentMessage {
   numTurns?: number;
 }
 
-// TODO: 重新设计 Agent 会话配置和流事件类型
+/** Agent 会话配置 */
+export interface AgentSessionConfig {
+  cwd: string;
+  message: string;
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
+  tools?: string[];
+  maxTurns?: number;
+  maxBudgetUsd?: number;
+}

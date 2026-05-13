@@ -23,6 +23,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
     "@ant-design/x": "^1.2.0",
+    "@anthropic-ai/claude-code": "^2.1.139",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@tanstack/react-virtual": "^3.13.6",
     "antd": "^5.25.0",
