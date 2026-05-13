@@ -40,9 +40,9 @@ export function AgentInput() {
     fontFamily: 'inherit', lineHeight: 1.4,
     transition: 'all 0.2s ease',
     background: isRunning
-      ? 'linear-gradient(135deg, #fff0e0, #ffe0c0)'
-      : 'linear-gradient(135deg, #fff7ed, #ffedd5)',
-    color: isRunning ? '#c2410c' : '#9a3412',
+      ? 'linear-gradient(135deg, #fb923c, #f97316)'
+      : 'linear-gradient(135deg, #fed7aa, #fdba74)',
+    color: isRunning ? '#fff' : '#9a3412',
     whiteSpace: 'nowrap',
   };
 
@@ -78,14 +78,14 @@ export function AgentInput() {
               onMouseEnter={(e) => {
                 if (!btnDisabled) {
                   (e.currentTarget as HTMLElement).style.background = isRunning
-                    ? 'linear-gradient(135deg, #ffe0c0, #ffd0a0)'
-                    : 'linear-gradient(135deg, #ffedd5, #fed7aa)';
+                    ? 'linear-gradient(135deg, #ea580c, #dc2626)'
+                    : 'linear-gradient(135deg, #fdba74, #fb923c)';
                 }
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = isRunning
-                  ? 'linear-gradient(135deg, #fff0e0, #ffe0c0)'
-                  : 'linear-gradient(135deg, #fff7ed, #ffedd5)';
+                  ? 'linear-gradient(135deg, #fb923c, #f97316)'
+                  : 'linear-gradient(135deg, #fed7aa, #fdba74)';
               }}
             >
               {isRunning ? '停止' : 'Send'}
@@ -97,8 +97,8 @@ export function AgentInput() {
               {isRunning && (
                 <span style={{
                   display: 'inline-block', width: 14, height: 14,
-                  border: `2px solid rgba(194,65,12,0.2)`,
-                  borderTopColor: '#c2410c',
+                  border: `2px solid rgba(255,255,255,0.3)`,
+                  borderTopColor: '#fff',
                   borderRadius: '50%',
                   animation: 'agent-spin 0.8s linear infinite',
                   flexShrink: 0,
