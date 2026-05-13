@@ -104,6 +104,7 @@ export type AgentPermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions
 export interface AgentSessionConfig {
   cwd: string;
   message: string;
+  sessionId?: string; // 传入已有 session-id 以恢复会话
   apiKey?: string;
   baseUrl?: string;
   model?: string;

@@ -32,6 +32,7 @@ interface SessionContext {
 interface SessionConfig {
   cwd: string;
   message: string;
+  sessionId?: string; // 传入已有 session-id 以恢复会话
   apiKey?: string;
   baseUrl?: string;
   model?: string;
@@ -59,7 +60,8 @@ class AgentService {
    * 使用 --input-format stream-json --output-format stream-json 双向协议
    */
   startSession(config: SessionConfig, sender: Electron.WebContents): string {
-    const sessionId = uuidv4();
+    // 复用已有 session-id 或创建新的
+    const sessionId = config.sessionId || uuidv4();
     const cliPath = getCliPath();
 
     console.log(`[Agent] 创建会话 ${sessionId.slice(0, 8)} cwd=${config.cwd}`);

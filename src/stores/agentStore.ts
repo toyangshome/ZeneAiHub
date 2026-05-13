@@ -259,18 +259,9 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     }));
 
     try {
-      // 如果已有活跃会话，直接发送消息
-      if (sessionId && status !== 'idle') {
-        await api.agent.sessionSend(sessionId, content);
-        return;
-      }
-
-      // 清理旧会话
+      // 清理上一个进程的监听器（进程在 result 后已自然退出）
       _currentCleanup?.();
       _currentCleanup = null;
-      if (sessionId) {
-        await api.agent.sessionStop(sessionId).catch(() => {});
-      }
 
       // 获取配置
       const [apiKey, baseUrl] = await Promise.all([
@@ -278,9 +269,11 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         api.store.get('claude-base-url', ''),
       ]);
 
+      // 复用已有 session-id（CLI 内部保持会话上下文）
       const config: AgentSessionConfig = {
         cwd,
         message: content,
+        sessionId: sessionId || undefined,
         apiKey: apiKey || undefined,
         baseUrl: baseUrl || undefined,
         model: get().model || undefined,
