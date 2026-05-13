@@ -45,23 +45,6 @@ export function ToolUseBlock({ name, input, hasResult }: ToolUseBlockProps) {
 
   return (
     <div>
-      <Tag
-        style={{
-          fontSize: 11, borderRadius: 8, margin: '0 0 6px 0',
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '2px 10px', lineHeight: '18px',
-          background: hasResult ? token.colorSuccessBg : token.colorPrimaryBg,
-          border: 'none',
-          color: accentColor,
-          fontWeight: 500,
-        }}
-      >
-        {meta?.icon || <ToolOutlined />}
-        {name}
-        {!hasResult && (
-          <LoadingOutlined style={{ fontSize: 10, marginLeft: 2 }} />
-        )}
-      </Tag>
       <div style={{
         border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 12,
         overflow: 'hidden', background: token.colorBgTextHover,
@@ -115,6 +98,23 @@ export function ToolUseBlock({ name, input, hasResult }: ToolUseBlockProps) {
           </div>
         )}
       </div>
+      <Tag
+        style={{
+          fontSize: 11, borderRadius: 8, margin: '6px 0 0 0',
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '2px 10px', lineHeight: '18px',
+          background: hasResult ? token.colorSuccessBg : token.colorPrimaryBg,
+          border: 'none',
+          color: accentColor,
+          fontWeight: 500,
+        }}
+      >
+        {meta?.icon || <ToolOutlined />}
+        {name}
+        {!hasResult && (
+          <LoadingOutlined style={{ fontSize: 10, marginLeft: 2 }} />
+        )}
+      </Tag>
     </div>
   );
 }
