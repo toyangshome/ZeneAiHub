@@ -119,6 +119,7 @@ export interface ElectronAPI {
     sessionCreate(config: AgentSessionConfig): Promise<{ sessionId: string }>;
     sessionSend(sessionId: string, content: string): Promise<void>;
     sessionStop(sessionId: string): Promise<void>;
+    sessionPermissionRespond(sessionId: string, toolUseId: string, approved: boolean): Promise<void>;
     onStreamEvent(sessionId: string, callback: (event: AgentStreamEvent) => void): () => void;
     onStreamDone(sessionId: string, callback: () => void): () => void;
     onStreamError(sessionId: string, callback: (error: string) => void): () => void;

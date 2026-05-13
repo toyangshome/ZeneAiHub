@@ -32,7 +32,7 @@ export type AgentContentBlock =
   | AgentToolResultBlock;
 
 /** CLI stream-json 事件类型 */
-export type AgentStreamEventType = 'system' | 'assistant' | 'user' | 'result' | 'error';
+export type AgentStreamEventType = 'system' | 'assistant' | 'user' | 'result' | 'error' | 'permission_request';
 
 export interface AgentStreamEvent {
   type: AgentStreamEventType;
@@ -44,6 +44,12 @@ export interface AgentStreamEvent {
   tools?: string[];
   model?: string;
   permissionMode?: string;
+
+  // permission_request 事件
+  tool_use_id?: string;
+  tool_name?: string;
+  tool_input?: Record<string, unknown>;
+  permission_prompt?: string;
 
   // assistant 事件
   message?: {
@@ -95,6 +101,14 @@ export interface AgentMessage {
   cost?: number;
   durationMs?: number;
   numTurns?: number;
+}
+
+/** 待审批的工具调用 */
+export interface AgentPendingApproval {
+  toolUseId: string;
+  toolName: string;
+  toolInput: Record<string, unknown>;
+  prompt?: string;
 }
 
 /** 权限模式 */

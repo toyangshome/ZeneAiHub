@@ -104,6 +104,8 @@ export const api = {
       window.electronAPI.agent.sessionSend(sessionId, content),
     sessionStop: (sessionId: string) =>
       window.electronAPI.agent.sessionStop(sessionId),
+    sessionPermissionRespond: (sessionId: string, toolUseId: string, approved: boolean) =>
+      window.electronAPI.agent.sessionPermissionRespond(sessionId, toolUseId, approved),
     onStreamEvent: (sessionId: string, cb: (event: AgentStreamEvent) => void) =>
       window.electronAPI.agent.onStreamEvent(sessionId, cb),
     onStreamDone: (sessionId: string, cb: () => void) =>

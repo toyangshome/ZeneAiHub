@@ -128,6 +128,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('agent:session:send', sessionId, content),
     sessionStop: (sessionId: string) =>
       ipcRenderer.invoke('agent:session:stop', sessionId),
+    sessionPermissionRespond: (sessionId: string, toolUseId: string, approved: boolean) =>
+      ipcRenderer.invoke('agent:session:permission', sessionId, toolUseId, approved),
     onStreamEvent: (sessionId: string, callback: (event: unknown) => void) => {
       const channel = `agent:session:stream:${sessionId}`;
       const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);

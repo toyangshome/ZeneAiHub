@@ -74,4 +74,5 @@ export const IPC = {
   AGENT_SESSION_CREATE: 'agent:session:create',
   AGENT_SESSION_SEND: 'agent:session:send',
   AGENT_SESSION_STOP: 'agent:session:stop',
+  AGENT_SESSION_PERMISSION: 'agent:session:permission',
 } as const;

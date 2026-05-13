@@ -180,6 +180,28 @@ class AgentService {
   }
 
   /**
+   * 向 CLI 发送权限审批响应
+   */
+  sendPermissionResponse(sessionId: string, toolUseId: string, approved: boolean): boolean {
+    const ctx = this.sessions.get(sessionId);
+    if (!ctx || ctx.process.stdin?.destroyed) return false;
+
+    const payload = JSON.stringify({
+      type: 'permission_response',
+      tool_use_id: toolUseId,
+      approved,
+    });
+
+    try {
+      ctx.process.stdin!.write(payload + '\n');
+      return true;
+    } catch (err) {
+      console.error('[Agent] sendPermissionResponse 失败:', err);
+      return false;
+    }
+  }
+
+  /**
    * 向 stdin 写入用户消息
    */
   private writeMessage(sessionId: string, content: string): boolean {

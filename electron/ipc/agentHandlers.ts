@@ -39,4 +39,9 @@ export function registerAgentHandlers(): void {
   ipcMain.handle(IPC.AGENT_SESSION_STOP, async (_event, sessionId: string) => {
     agentService.stopSession(sessionId);
   });
+
+  ipcMain.handle(IPC.AGENT_SESSION_PERMISSION, async (_event, sessionId: string, toolUseId: string, approved: boolean) => {
+    const ok = agentService.sendPermissionResponse(sessionId, toolUseId, approved);
+    if (!ok) throw new Error('权限响应发送失败：会话不存在或已关闭');
+  });
 }

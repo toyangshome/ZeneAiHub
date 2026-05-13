@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { AgentMessage, AgentContentBlock, AgentSessionConfig, AgentStreamEvent, AgentPermissionMode } from '@shared/types/agent';
+import type { AgentMessage, AgentContentBlock, AgentSessionConfig, AgentStreamEvent, AgentPermissionMode, AgentPendingApproval } from '@shared/types/agent';
 import { api } from '../services/ipcBridge';
 
 // ========== 模块级状态 ==========
@@ -131,6 +131,20 @@ function handleStreamEvent(sessionId: string, event: AgentStreamEvent) {
         error: event.error || '未知错误',
       });
       break;
+
+    case 'permission_request':
+      if (event.tool_use_id && event.tool_name) {
+        const approval: AgentPendingApproval = {
+          toolUseId: event.tool_use_id,
+          toolName: event.tool_name,
+          toolInput: event.tool_input || {},
+          prompt: event.permission_prompt,
+        };
+        useAgentStore.setState((s) => ({
+          pendingApprovals: [...s.pendingApprovals, approval],
+        }));
+      }
+      break;
   }
 }
 
@@ -181,6 +195,7 @@ interface AgentState {
   currentTurns: number;
 
   messages: AgentMessage[];
+  pendingApprovals: AgentPendingApproval[];
   error: string | null;
 
   // Actions
@@ -192,6 +207,8 @@ interface AgentState {
   sendMessage: (content: string) => Promise<void>;
   stopSession: () => Promise<void>;
   clearMessages: () => void;
+  approveTool: (toolUseId: string) => void;
+  denyTool: (toolUseId: string) => void;
 }
 
 // ========== Store ==========
@@ -209,6 +226,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   currentDuration: 0,
   currentTurns: 0,
   messages: [],
+  pendingApprovals: [],
   error: null,
 
   checkCli: async () => {
@@ -338,7 +356,24 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       currentTurns: 0,
       status: 'idle',
       sessionId: null,
+      pendingApprovals: [],
       error: null,
     });
+  },
+
+  approveTool: (toolUseId) => {
+    const { sessionId } = get();
+    if (sessionId) api.agent.sessionPermissionRespond(sessionId, toolUseId, true);
+    set((s) => ({
+      pendingApprovals: s.pendingApprovals.filter((a) => a.toolUseId !== toolUseId),
+    }));
+  },
+
+  denyTool: (toolUseId) => {
+    const { sessionId } = get();
+    if (sessionId) api.agent.sessionPermissionRespond(sessionId, toolUseId, false);
+    set((s) => ({
+      pendingApprovals: s.pendingApprovals.filter((a) => a.toolUseId !== toolUseId),
+    }));
   },
 }));
