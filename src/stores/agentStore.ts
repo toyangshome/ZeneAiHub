@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { AgentMessage, AgentContentBlock, AgentSessionConfig, AgentStreamEvent } from '@shared/types/agent';
+import type { AgentMessage, AgentContentBlock, AgentSessionConfig, AgentStreamEvent, AgentPermissionMode } from '@shared/types/agent';
 import { api } from '../services/ipcBridge';
 
 // ========== 模块级状态 ==========
@@ -170,6 +170,7 @@ interface AgentState {
   cwd: string;
   status: 'idle' | 'running' | 'waiting_input' | 'error';
   model: string | null;
+  permissionMode: AgentPermissionMode;
   currentCost: number;
   currentDuration: number;
   currentTurns: number;
@@ -182,6 +183,7 @@ interface AgentState {
   getCliVersion: () => void;
   selectDirectory: () => Promise<void>;
   setCwd: (cwd: string) => void;
+  setPermissionMode: (mode: AgentPermissionMode) => void;
   sendMessage: (content: string) => Promise<void>;
   stopSession: () => Promise<void>;
   clearMessages: () => void;
@@ -197,6 +199,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   cwd: '',
   status: 'idle',
   model: null,
+  permissionMode: 'default',
   currentCost: 0,
   currentDuration: 0,
   currentTurns: 0,
@@ -234,6 +237,8 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   setCwd: (cwd) => set({ cwd }),
+
+  setPermissionMode: (mode) => set({ permissionMode: mode }),
 
   sendMessage: async (content) => {
     const { cwd, sessionId, status } = get();
@@ -279,6 +284,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         apiKey: apiKey || undefined,
         baseUrl: baseUrl || undefined,
         model: get().model || undefined,
+        permissionMode: get().permissionMode,
       };
 
       const { sessionId: newId } = await api.agent.sessionCreate(config);

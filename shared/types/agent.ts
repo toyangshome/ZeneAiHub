@@ -97,6 +97,9 @@ export interface AgentMessage {
   numTurns?: number;
 }
 
+/** 权限模式 */
+export type AgentPermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
+
 /** Agent 会话配置 */
 export interface AgentSessionConfig {
   cwd: string;
@@ -104,6 +107,7 @@ export interface AgentSessionConfig {
   apiKey?: string;
   baseUrl?: string;
   model?: string;
+  permissionMode?: AgentPermissionMode;
   tools?: string[];
   maxTurns?: number;
   maxBudgetUsd?: number;

@@ -3,6 +3,7 @@ import { Sender } from '@ant-design/x';
 import { App } from 'antd';
 import { useAgentStore } from '../../../stores/agentStore';
 import { ProjectSelector } from './ProjectSelector';
+import { PermissionModeSelector } from './PermissionModeSelector';
 
 export function AgentInput() {
   const { message } = App.useApp();
@@ -48,6 +49,8 @@ export function AgentInput() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <ProjectSelector />
+              <span style={{ width: 1, height: 16, background: 'var(--ant-color-border)', flexShrink: 0 }} />
+              <PermissionModeSelector placement="top" />
             </div>
             <Send disabled={disabled || !value.trim()} />
           </div>

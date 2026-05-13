@@ -35,6 +35,7 @@ interface SessionConfig {
   apiKey?: string;
   baseUrl?: string;
   model?: string;
+  permissionMode?: string;
   tools?: string[];
   maxTurns?: number;
   maxBudgetUsd?: number;
@@ -70,7 +71,7 @@ class AgentService {
       '--verbose',
       '--session-id', sessionId,
       '--no-session-persistence',
-      '--permission-mode', 'bypassPermissions',
+      '--permission-mode', config.permissionMode || 'default',
     ];
 
     if (config.model) {
