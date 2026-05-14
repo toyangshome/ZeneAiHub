@@ -1,12 +1,76 @@
+import { useState } from 'react';
 import { Typography, Tag, theme } from 'antd';
-import { ApiOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import {
+  ApiOutlined, CloseCircleOutlined,
+  CheckCircleOutlined, CloseCircleOutlined as CloseIcon,
+  BulbOutlined, LoadingOutlined, DownOutlined, RightOutlined,
+  ReadOutlined, EditOutlined, FileAddOutlined,
+  CodeOutlined, SearchOutlined, GlobalOutlined,
+  ToolOutlined,
+} from '@ant-design/icons';
+import type { ReactNode } from 'react';
 import { useAgentStore } from '../../../stores/agentStore';
 import { useAutoScroll } from '../../Chat/hooks/useAutoScroll';
-import { ThinkingBlock } from './blocks/ThinkingBlock';
-import { ToolUseBlock } from './blocks/ToolUseBlock';
-import { ToolResultBlock } from './blocks/ToolResultBlock';
-import { TextBlock } from './blocks/TextBlock';
-import type { AgentContentBlock, AgentMessage, AgentToolResultBlock } from '@shared/types/agent';
+import { MarkdownRenderer } from '../../Chat/components/MarkdownRenderer';
+import type { AgentContentBlock, AgentMessage, AgentToolUseBlock, AgentToolResultBlock } from '@shared/types/agent';
+
+// 工具名 → 图标 + 颜色
+const TOOL_META: Record<string, { icon: ReactNode; color: string }> = {
+  Read:    { icon: <ReadOutlined />,    color: '#3b82f6' },
+  Edit:    { icon: <EditOutlined />,    color: '#f59e0b' },
+  Write:   { icon: <FileAddOutlined />, color: '#10b981' },
+  Bash:    { icon: <CodeOutlined />,    color: '#8b5cf6' },
+  Glob:    { icon: <SearchOutlined />,  color: '#6366f1' },
+  Grep:    { icon: <SearchOutlined />,  color: '#ec4899' },
+  WebFetch:{ icon: <GlobalOutlined />,  color: '#06b6d4' },
+  WebSearch:{ icon: <GlobalOutlined />, color: '#0ea5e9' },
+};
+
+function getToolPreview(name: string, input: Record<string, unknown>): string {
+  if (input.file_path) return String(input.file_path).split(/[/\\]/).pop() || '';
+  if (input.command) return String(input.command).slice(0, 60);
+  if (input.pattern) return String(input.pattern);
+  if (input.query) return String(input.query).slice(0, 40);
+  if (input.url) return String(input.url).slice(0, 50);
+  return name;
+}
+
+function truncate(str: string, max: number): string {
+  if (str.length <= max) return str;
+  return str.slice(0, max) + '...';
+}
+
+// 将 blocks 解析为结构化段落
+interface ThinkingSegment { type: 'thinking'; text: string }
+interface ToolSegment { type: 'tool'; toolUse: AgentToolUseBlock; result?: AgentToolResultBlock }
+interface TextSegment { type: 'text'; text: string }
+type Segment = ThinkingSegment | ToolSegment | TextSegment;
+
+function parseSegments(blocks: AgentContentBlock[]): Segment[] {
+  const resultMap = new Map<string, AgentToolResultBlock>();
+  const segments: Segment[] = [];
+
+  for (const b of blocks) {
+    if (b.type === 'tool_result') {
+      resultMap.set(b.tool_use_id, b);
+    }
+  }
+
+  for (const b of blocks) {
+    if (b.type === 'thinking') {
+      segments.push({ type: 'thinking', text: b.thinking });
+    } else if (b.type === 'tool_use') {
+      segments.push({ type: 'tool', toolUse: b, result: resultMap.get(b.id) });
+    } else if (b.type === 'text') {
+      segments.push({ type: 'text', text: b.text });
+    }
+    // tool_result 已被合并到 tool 段，跳过
+  }
+
+  return segments;
+}
+
+// ========== 主组件 ==========
 
 export function AgentMessageList() {
   const messages = useAgentStore((s) => s.messages);
@@ -19,7 +83,7 @@ export function AgentMessageList() {
       {messages.length === 0 ? (
         <EmptyState />
       ) : (
-        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {messages.map((msg) => (
             <AgentMessageBubble key={msg.id} message={msg} />
           ))}
@@ -30,6 +94,8 @@ export function AgentMessageList() {
     </div>
   );
 }
+
+// ========== 消息气泡 ==========
 
 function AgentMessageBubble({ message }: { message: AgentMessage }) {
   const { token } = theme.useToken();
@@ -49,36 +115,58 @@ function AgentMessageBubble({ message }: { message: AgentMessage }) {
     );
   }
 
-  const resultMap = new Map<string, AgentToolResultBlock>();
-  for (const b of message.blocks) {
-    if (b.type === 'tool_result') {
-      resultMap.set(b.tool_use_id, b);
-    }
-  }
+  const segments = parseSegments(message.blocks);
+  const hasThinking = segments.some((s) => s.type === 'thinking');
+  const toolSegments = segments.filter((s): s is ToolSegment => s.type === 'tool');
+  const textSegments = segments.filter((s): s is TextSegment => s.type === 'text');
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', gap: 8,
-      background: token.colorBgTextHover,
-      borderRadius: 16, padding: '12px 16px',
-      border: `1px solid ${token.colorBorderSecondary}`,
+      display: 'flex', flexDirection: 'column', gap: 10,
+      padding: '4px 0',
     }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {message.blocks.map((block, i) => (
-          block.type === 'tool_result' ? null : (
-            <AgentBlockRenderer
-              key={`${message.id}-${i}`}
-              block={block}
-              hasResult={block.type === 'tool_use' ? resultMap.has(block.id) : undefined}
-            />
-          )
-        ))}
-      </div>
+      {/* 思考指示器 */}
+      {hasThinking && (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontSize: 12, color: token.colorTextQuaternary,
+        }}>
+          <BulbOutlined style={{ fontSize: 12 }} />
+          <span>已思考</span>
+        </div>
+      )}
+
+      {/* 工具调用步骤列表 */}
+      {toolSegments.length > 0 && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 2,
+          borderRadius: 10, overflow: 'hidden',
+          border: `1px solid ${token.colorBorderSecondary}`,
+        }}>
+          {toolSegments.map((seg, i) => (
+            <ToolStepRow key={`${seg.toolUse.id}-${i}`} segment={seg} token={token} isLast={i === toolSegments.length - 1} />
+          ))}
+        </div>
+      )}
+
+      {/* 回复文本 */}
+      {textSegments.length > 0 && (
+        <div style={{
+          fontSize: 14, lineHeight: 1.7, wordBreak: 'break-word',
+          padding: '2px 0',
+        }}>
+          {textSegments.map((seg, i) => (
+            <MarkdownRenderer key={i} content={seg.text} />
+          ))}
+        </div>
+      )}
+
+      {/* 费用/耗时 */}
       {message.cost !== undefined && message.cost > 0 && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <Tag style={{ fontSize: 11, borderRadius: 8 }}>${message.cost.toFixed(4)}</Tag>
+          <Tag style={{ fontSize: 11, borderRadius: 8, margin: 0 }}>${message.cost.toFixed(4)}</Tag>
           {message.durationMs && message.durationMs > 0 && (
-            <Tag style={{ fontSize: 11, borderRadius: 8 }}>{(message.durationMs / 1000).toFixed(1)}s</Tag>
+            <Tag style={{ fontSize: 11, borderRadius: 8, margin: 0 }}>{(message.durationMs / 1000).toFixed(1)}s</Tag>
           )}
         </div>
       )}
@@ -86,19 +174,90 @@ function AgentMessageBubble({ message }: { message: AgentMessage }) {
   );
 }
 
-function AgentBlockRenderer({ block, hasResult }: { block: AgentContentBlock; hasResult?: boolean }) {
-  switch (block.type) {
-    case 'text':
-      return <TextBlock text={block.text} />;
-    case 'thinking':
-      return <ThinkingBlock thinking={block.thinking} />;
-    case 'tool_use':
-      return <ToolUseBlock id={block.id} name={block.name} input={block.input} hasResult={hasResult} />;
-    case 'tool_result':
-      return <ToolResultBlock toolUseId={block.tool_use_id} content={block.content} is_error={block.is_error} />;
-    default:
-      return null;
-  }
+// ========== 工具步骤行 ==========
+
+function ToolStepRow({ segment, token, isLast }: { segment: ToolSegment; token: ReturnType<typeof theme.useToken>['token']; isLast: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const { toolUse, result } = segment;
+  const meta = TOOL_META[toolUse.name];
+  const accentColor = meta?.color || token.colorTextSecondary;
+  const preview = getToolPreview(toolUse.name, toolUse.input);
+  const done = !!result;
+  const isError = result?.is_error;
+  const resultContent = result?.content || '';
+
+  return (
+    <div style={{
+      background: token.colorBgTextHover,
+      borderBottom: isLast ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+    }}>
+      <div
+        onClick={() => done && setExpanded(!expanded)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '7px 12px', cursor: done ? 'pointer' : 'default',
+          userSelect: 'none',
+        }}
+      >
+        {/* 状态图标 */}
+        {!done ? (
+          <LoadingOutlined style={{ color: token.colorPrimary, fontSize: 13, flexShrink: 0 }} />
+        ) : isError ? (
+          <CloseIcon style={{ color: token.colorError, fontSize: 13, flexShrink: 0 }} />
+        ) : (
+          <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 13, flexShrink: 0 }} />
+        )}
+
+        {/* 工具标签 */}
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          fontSize: 12, fontWeight: 500, color: accentColor, flexShrink: 0,
+        }}>
+          {meta?.icon || <ToolOutlined />}
+          {toolUse.name}
+        </span>
+
+        {/* 预览 */}
+        <Typography.Text type="secondary" style={{ fontSize: 12, flex: 1, minWidth: 0 }} ellipsis>
+          {preview}
+        </Typography.Text>
+
+        {/* 结果摘要 / 执行中 */}
+        {!done && (
+          <Tag color="processing" style={{ fontSize: 10, lineHeight: '16px', padding: '0 6px', margin: 0 }}>
+            执行中
+          </Tag>
+        )}
+        {done && resultContent && (
+          <span style={{
+            fontSize: 11, color: isError ? token.colorError : token.colorTextQuaternary,
+            maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            flexShrink: 1,
+          }}>
+            {truncate(resultContent, 40)}
+          </span>
+        )}
+
+        {/* 展开箭头 */}
+        {done && resultContent && (
+          <span style={{ color: token.colorTextQuaternary, fontSize: 10, flexShrink: 0 }}>
+            {expanded ? <DownOutlined /> : <RightOutlined />}
+          </span>
+        )}
+      </div>
+
+      {/* 展开的完整结果 */}
+      {expanded && resultContent && (
+        <div style={{
+          padding: '8px 12px 10px 33px', fontSize: 12, lineHeight: 1.6,
+          whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 300, overflow: 'auto',
+          color: token.colorTextSecondary,
+        }}>
+          {resultContent}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function EmptyState() {
