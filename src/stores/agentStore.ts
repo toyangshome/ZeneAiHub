@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { AgentMessage, AgentContentBlock, AgentSessionConfig, AgentStreamEvent, AgentPermissionMode, AgentPendingApproval } from '@shared/types/agent';
+import type { AgentMessage, AgentContentBlock, AgentToolResultBlock, AgentSessionConfig, AgentStreamEvent, AgentPermissionMode, AgentPendingApproval } from '@shared/types/agent';
 import { api } from '../services/ipcBridge';
 
 // ========== 模块级状态 ==========
@@ -9,6 +9,15 @@ let _currentCleanup: (() => void) | null = null;
 
 /** 当前是否正在处理一个 assistant 回合（用于合并多个 assistant 事件到同一个气泡） */
 let _isInAssistantTurn = false;
+
+/** 需要授权确认的工具名 */
+const DANGEROUS_TOOLS = new Set(['Bash', 'Write', 'Edit']);
+
+/** 等待用户确认的 tool_use ID 集合 */
+const _pendingApprovalIds = new Set<string>();
+
+/** 已到达但等待确认的 tool_result，key = tool_use_id */
+const _bufferedResults = new Map<string, AgentToolResultBlock>();
 
 // ========== 工具函数 ==========
 
@@ -43,6 +52,21 @@ function handleStreamEvent(sessionId: string, event: AgentStreamEvent) {
 
     case 'assistant':
       if (event.message?.content) {
+        // 检测需要授权的危险工具
+        const dangerousUses = event.message.content.filter(
+          (b): b is AgentContentBlock & { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> } =>
+            b.type === 'tool_use' && DANGEROUS_TOOLS.has(b.name) && !_pendingApprovalIds.has(b.id)
+        );
+        if (dangerousUses.length > 0) {
+          const newApprovals: AgentPendingApproval[] = dangerousUses.map((b) => {
+            _pendingApprovalIds.add(b.id);
+            return { toolUseId: b.id, toolName: b.name, toolInput: b.input };
+          });
+          useAgentStore.setState((s) => ({
+            pendingApprovals: [...s.pendingApprovals, ...newApprovals],
+          }));
+        }
+
         useAgentStore.setState((s) => {
           const newContent = event.message!.content.filter((b) => b.type !== 'tool_result');
 
@@ -81,42 +105,60 @@ function handleStreamEvent(sessionId: string, event: AgentStreamEvent) {
       // CLI 内部工具执行结果回显，追加到对应消息
       if (event.message_user?.content) {
         const toolResultBlocks = event.message_user.content.filter(
-          (b) => b.type === 'tool_result'
+          (b): b is AgentToolResultBlock => b.type === 'tool_result'
         );
         if (toolResultBlocks.length > 0) {
-          useAgentStore.setState((s) => {
-            const msgs = [...s.messages];
-            const unmatched: AgentContentBlock[] = [];
-            for (const result of toolResultBlocks) {
-              let matched = false;
-              for (let i = msgs.length - 1; i >= 0; i--) {
-                if (msgs[i].role === 'assistant' &&
-                    msgs[i].blocks.some(b => b.type === 'tool_use' && b.id === result.tool_use_id)) {
-                  msgs[i] = { ...msgs[i], blocks: [...msgs[i].blocks, result] };
-                  matched = true;
-                  break;
+          // 分离：待审批的缓冲，已批准的直接显示
+          const deferred: AgentToolResultBlock[] = [];
+          const immediate: AgentToolResultBlock[] = [];
+          for (const result of toolResultBlocks) {
+            if (_pendingApprovalIds.has(result.tool_use_id)) {
+              _bufferedResults.set(result.tool_use_id, result);
+              deferred.push(result);
+            } else {
+              immediate.push(result);
+            }
+          }
+
+          if (immediate.length > 0) {
+            useAgentStore.setState((s) => {
+              const msgs = [...s.messages];
+              const unmatched: AgentToolResultBlock[] = [];
+              for (const result of immediate) {
+                let matched = false;
+                for (let i = msgs.length - 1; i >= 0; i--) {
+                  if (msgs[i].role === 'assistant' &&
+                      msgs[i].blocks.some(b => b.type === 'tool_use' && b.id === result.tool_use_id)) {
+                    msgs[i] = { ...msgs[i], blocks: [...msgs[i].blocks, result] };
+                    matched = true;
+                    break;
+                  }
+                }
+                if (!matched) unmatched.push(result);
+              }
+              // 未匹配的追加到最后一条 assistant 消息
+              if (unmatched.length > 0) {
+                for (let i = msgs.length - 1; i >= 0; i--) {
+                  if (msgs[i].role === 'assistant') {
+                    msgs[i] = { ...msgs[i], blocks: [...msgs[i].blocks, ...unmatched] };
+                    break;
+                  }
                 }
               }
-              if (!matched) unmatched.push(result);
-            }
-            // 未匹配的追加到最后一条 assistant 消息
-            if (unmatched.length > 0) {
-              for (let i = msgs.length - 1; i >= 0; i--) {
-                if (msgs[i].role === 'assistant') {
-                  msgs[i] = { ...msgs[i], blocks: [...msgs[i].blocks, ...unmatched] };
-                  break;
-                }
-              }
-            }
-            return { messages: msgs };
-          });
+              return { messages: msgs };
+            });
+          }
         }
       }
       break;
 
     case 'result':
+      // 回合结束：清理审批状态，补全未完成的 tool_use
+      _pendingApprovalIds.clear();
+      _bufferedResults.clear();
       useAgentStore.setState((s) => ({
         messages: completeToolUseForSession(sessionId, s.messages),
+        pendingApprovals: [],
         currentCost: s.currentCost + (event.total_cost_usd || 0),
         currentDuration: s.currentDuration + (event.duration_ms || 0),
         currentTurns: s.currentTurns + (event.num_turns || 1),
@@ -126,24 +168,13 @@ function handleStreamEvent(sessionId: string, event: AgentStreamEvent) {
       break;
 
     case 'error':
+      _pendingApprovalIds.clear();
+      _bufferedResults.clear();
       useAgentStore.setState({
         status: 'error',
         error: event.error || '未知错误',
+        pendingApprovals: [],
       });
-      break;
-
-    case 'permission_request':
-      if (event.tool_use_id && event.tool_name) {
-        const approval: AgentPendingApproval = {
-          toolUseId: event.tool_use_id,
-          toolName: event.tool_name,
-          toolInput: event.tool_input || {},
-          prompt: event.permission_prompt,
-        };
-        useAgentStore.setState((s) => ({
-          pendingApprovals: [...s.pendingApprovals, approval],
-        }));
-      }
       break;
   }
 }
@@ -362,18 +393,47 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   approveTool: (toolUseId) => {
-    const { sessionId } = get();
-    if (sessionId) api.agent.sessionPermissionRespond(sessionId, toolUseId, true);
-    set((s) => ({
-      pendingApprovals: s.pendingApprovals.filter((a) => a.toolUseId !== toolUseId),
-    }));
+    _pendingApprovalIds.delete(toolUseId);
+    const buffered = _bufferedResults.get(toolUseId);
+    _bufferedResults.delete(toolUseId);
+
+    if (buffered) {
+      // 将缓冲的 tool_result 追加到对应消息
+      useAgentStore.setState((s) => {
+        const msgs = [...s.messages];
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          if (msgs[i].role === 'assistant' &&
+              msgs[i].blocks.some(b => b.type === 'tool_use' && b.id === toolUseId)) {
+            msgs[i] = { ...msgs[i], blocks: [...msgs[i].blocks, buffered] };
+            break;
+          }
+        }
+        return {
+          messages: msgs,
+          pendingApprovals: s.pendingApprovals.filter((a) => a.toolUseId !== toolUseId),
+        };
+      });
+    } else {
+      set((s) => ({
+        pendingApprovals: s.pendingApprovals.filter((a) => a.toolUseId !== toolUseId),
+      }));
+    }
   },
 
   denyTool: (toolUseId) => {
+    // 拒绝 = 停止会话
+    _pendingApprovalIds.delete(toolUseId);
+    _bufferedResults.delete(toolUseId);
     const { sessionId } = get();
-    if (sessionId) api.agent.sessionPermissionRespond(sessionId, toolUseId, false);
-    set((s) => ({
-      pendingApprovals: s.pendingApprovals.filter((a) => a.toolUseId !== toolUseId),
-    }));
+    if (sessionId) {
+      _currentCleanup?.();
+      _currentCleanup = null;
+      api.agent.sessionStop(sessionId).catch(() => {});
+    }
+    set({
+      pendingApprovals: [],
+      sessionId: null,
+      status: 'idle',
+    });
   },
 }));

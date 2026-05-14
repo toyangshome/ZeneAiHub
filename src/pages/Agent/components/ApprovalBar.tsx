@@ -101,7 +101,7 @@ export function ApprovalBar() {
                 onClick={() => denyTool(approval.toolUseId)}
                 style={{ borderRadius: 8 }}
               >
-                拒绝
+                停止
               </Button>
             </div>
           </div>
