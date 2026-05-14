@@ -310,3 +310,9 @@ body {
     box-shadow: 0 0 0 5px rgba(249, 115, 22, 0.08);
   }
 }
+
+/* Agent 侧边栏运行状态点脉动 */
+@keyframes agent-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

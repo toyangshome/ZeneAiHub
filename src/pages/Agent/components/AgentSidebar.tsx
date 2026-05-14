@@ -1,118 +1,94 @@
-import { Typography, Tag, Space, Button, theme } from 'antd';
-import { ApiOutlined, ClearOutlined, StopOutlined } from '@ant-design/icons';
+import { Typography, Button, theme } from 'antd';
+import {
+  ApiOutlined, ClearOutlined, StopOutlined,
+  FolderOutlined, RobotOutlined,
+} from '@ant-design/icons';
 import { useAgentStore } from '../../../stores/agentStore';
 
-const statusMap: Record<string, { color: string; label: string }> = {
-  idle: { color: 'default', label: '空闲' },
-  running: { color: 'processing', label: '运行中' },
-  waiting_input: { color: 'success', label: '等待输入' },
-  error: { color: 'error', label: '错误' },
+const STATUS_STYLE: Record<string, { bg: string; dot: string; label: string }> = {
+  idle:           { bg: 'rgba(0,0,0,0.04)',  dot: '#999',  label: '空闲' },
+  running:        { bg: 'rgba(24,144,255,0.06)', dot: '#1890ff', label: '运行中' },
+  waiting_input:  { bg: 'rgba(82,196,26,0.06)',  dot: '#52c41a', label: '等待输入' },
+  error:          { bg: 'rgba(255,77,79,0.06)',  dot: '#ff4d4f', label: '错误' },
 };
 
 export function AgentSidebar() {
   const { token } = theme.useToken();
   const status = useAgentStore((s) => s.status);
   const model = useAgentStore((s) => s.model);
-  const currentCost = useAgentStore((s) => s.currentCost);
-  const currentDuration = useAgentStore((s) => s.currentDuration);
-  const currentTurns = useAgentStore((s) => s.currentTurns);
   const cwd = useAgentStore((s) => s.cwd);
-  const cliVersion = useAgentStore((s) => s.cliVersion);
   const stopSession = useAgentStore((s) => s.stopSession);
   const clearMessages = useAgentStore((s) => s.clearMessages);
-
-  const st = statusMap[status] || statusMap.idle;
+  const st = STATUS_STYLE[status] || STATUS_STYLE.idle;
+  const projectName = cwd ? cwd.split(/[/\\]/).pop() : '';
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: 16 }}>
-      <Typography.Title level={5} style={{ margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <ApiOutlined />
-        Agent
-      </Typography.Title>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px 14px' }}>
+      {/* 标题 + 状态 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        marginBottom: 20, padding: '10px 12px', borderRadius: 12,
+        background: st.bg,
+      }}>
+        <ApiOutlined style={{ fontSize: 18, color: st.dot }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.3 }}>Agent</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%', background: st.dot,
+              boxShadow: status === 'running' ? `0 0 6px ${st.dot}` : 'none',
+              animation: status === 'running' ? 'agent-dot-pulse 1.5s ease-in-out infinite' : 'none',
+            }} />
+            <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{st.label}</span>
+          </div>
+        </div>
+      </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <InfoItem label="状态">
-          <Tag color={st.color === 'processing' ? 'processing' : undefined} style={{ margin: 0 }}>
-            {st.label}
-          </Tag>
-        </InfoItem>
-
-        {cwd && (
-          <InfoItem label="项目">
-            <Typography.Text ellipsis={{ tooltip: cwd }} style={{ fontSize: 13 }}>
-              {cwd.split(/[/\\]/).pop()}
+      {/* 关键信息 */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {projectName && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 10px', borderRadius: 8, fontSize: 13,
+          }}>
+            <FolderOutlined style={{ fontSize: 14, color: token.colorTextQuaternary, flexShrink: 0 }} />
+            <Typography.Text ellipsis={{ tooltip: cwd }} style={{ fontSize: 13, margin: 0 }}>
+              {projectName}
             </Typography.Text>
-          </InfoItem>
+          </div>
         )}
-
         {model && (
-          <InfoItem label="模型">
-            <Typography.Text ellipsis={{ tooltip: model }} style={{ fontSize: 13 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 10px', borderRadius: 8, fontSize: 13,
+          }}>
+            <RobotOutlined style={{ fontSize: 14, color: token.colorTextQuaternary, flexShrink: 0 }} />
+            <Typography.Text ellipsis={{ tooltip: model }} style={{ fontSize: 13, margin: 0 }}>
               {model}
             </Typography.Text>
-          </InfoItem>
-        )}
-
-        {cliVersion && (
-          <InfoItem label="CLI 版本">
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>{cliVersion}</Typography.Text>
-          </InfoItem>
-        )}
-
-        {(currentCost > 0 || currentDuration > 0 || currentTurns > 0) && (
-          <div style={{
-            background: token.colorBgTextHover, borderRadius: 10, padding: '10px 12px',
-            display: 'flex', flexDirection: 'column', gap: 6,
-          }}>
-            {currentTurns > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>轮次</Typography.Text>
-                <Typography.Text style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
-                  {currentTurns}
-                </Typography.Text>
-              </div>
-            )}
-            {currentCost > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>费用</Typography.Text>
-                <Typography.Text style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
-                  ${currentCost.toFixed(4)}
-                </Typography.Text>
-              </div>
-            )}
-            {currentDuration > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>耗时</Typography.Text>
-                <Typography.Text style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
-                  {(currentDuration / 1000).toFixed(1)}s
-                </Typography.Text>
-              </div>
-            )}
           </div>
         )}
       </div>
 
-      <Space direction="vertical" style={{ width: '100%' }} size={8}>
+      {/* 操作按钮 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {status === 'running' && (
-          <Button block icon={<StopOutlined />} onClick={stopSession} danger>
+          <Button
+            block icon={<StopOutlined />} onClick={stopSession}
+            danger size="middle"
+            style={{ borderRadius: 10, fontWeight: 500 }}
+          >
             停止会话
           </Button>
         )}
-        <Button block icon={<ClearOutlined />} onClick={clearMessages} disabled={status === 'running'}>
+        <Button
+          block icon={<ClearOutlined />} onClick={clearMessages}
+          disabled={status === 'running'} size="middle"
+          style={{ borderRadius: 10, fontWeight: 500 }}
+        >
           清空消息
         </Button>
-      </Space>
-    </div>
-  );
-}
-
-function InfoItem({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>
-        {label}
-      </Typography.Text>
-      {children}
+      </div>
     </div>
   );
 }
