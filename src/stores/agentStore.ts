@@ -336,6 +336,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       if (dir) set({ cwd: dir });
     } catch (err) {
       console.error('选择目录失败:', err);
+      set({ error: err instanceof Error ? err.message : '选择目录失败' });
     }
   },
 
@@ -422,6 +423,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       set({ sessionId: newId });
     } catch (err) {
       console.error('[Agent] sendMessage 异常:', err);
+      _isInAssistantTurn = false;
       set({
         status: 'error',
         error: err instanceof Error ? err.message : '发送消息失败',
@@ -443,6 +445,8 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     const { sessionId, status } = get();
     _isInAssistantTurn = false;
     _alwaysAllowTools.clear();
+    _pendingApprovalIds.clear();
+    _bufferedResults.clear();
     if (status === 'running' && sessionId) {
       _currentCleanup?.();
       _currentCleanup = null;
@@ -571,6 +575,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       });
     } catch (err) {
       console.error('[Agent] loadSession 失败:', err);
+      set({ error: err instanceof Error ? err.message : '加载会话失败' });
     }
   },
 
@@ -606,6 +611,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       await api.file.export(md, `${safeTitle}.md`, 'md');
     } catch (err) {
       console.error('[Agent] 导出失败:', err);
+      set({ error: err instanceof Error ? err.message : '导出会话失败' });
     }
   },
 

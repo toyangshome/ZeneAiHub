@@ -1,32 +1,10 @@
 import { Modal, Tag, Typography, theme, Alert } from 'antd';
 import {
   CheckOutlined, CloseOutlined, SafetyOutlined,
-  ReadOutlined, EditOutlined, FileAddOutlined,
-  CodeOutlined, SearchOutlined, GlobalOutlined, ToolOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
-import type { ReactNode } from 'react';
 import { useAgentStore } from '../../../stores/agentStore';
-
-const TOOL_META: Record<string, { icon: ReactNode; color: string; risk: string }> = {
-  Read:     { icon: <ReadOutlined />,     color: '#3b82f6', risk: '读取文件内容' },
-  Edit:     { icon: <EditOutlined />,     color: '#f59e0b', risk: '修改文件内容' },
-  Write:    { icon: <FileAddOutlined />,  color: '#10b981', risk: '创建或覆写文件' },
-  Bash:     { icon: <CodeOutlined />,     color: '#8b5cf6', risk: '执行系统命令' },
-  Glob:     { icon: <SearchOutlined />,   color: '#6366f1', risk: '搜索文件路径' },
-  Grep:     { icon: <SearchOutlined />,   color: '#ec4899', risk: '搜索文件内容' },
-  WebFetch: { icon: <GlobalOutlined />,   color: '#06b6d4', risk: '获取网页内容' },
-  WebSearch:{ icon: <GlobalOutlined />,   color: '#0ea5e9', risk: '搜索互联网' },
-};
-
-function getDetail(input: Record<string, unknown>): string {
-  if (input.command) return String(input.command);
-  if (input.file_path) return String(input.file_path);
-  if (input.pattern) return String(input.pattern);
-  if (input.query) return String(input.query);
-  if (input.url) return String(input.url);
-  if (input.new_string) return String(input.new_string).slice(0, 200);
-  return JSON.stringify(input, null, 2).slice(0, 300);
-}
+import { TOOL_META, getToolDetail } from '../agentToolMeta';
 
 export function ApprovalModal() {
   const { token } = theme.useToken();
@@ -40,7 +18,7 @@ export function ApprovalModal() {
 
   const meta = TOOL_META[current.toolName];
   const accentColor = meta?.color || token.colorTextSecondary;
-  const detail = getDetail(current.toolInput);
+  const detail = getToolDetail(current.toolInput);
   const isBash = current.toolName === 'Bash';
   const remaining = pendingApprovals.length - 1;
 

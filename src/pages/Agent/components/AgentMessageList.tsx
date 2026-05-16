@@ -4,37 +4,14 @@ import {
   ApiOutlined, CloseCircleOutlined,
   CheckCircleOutlined, CloseCircleOutlined as CloseIcon,
   BulbOutlined, LoadingOutlined, DownOutlined, RightOutlined,
-  ReadOutlined, EditOutlined, FileAddOutlined,
-  CodeOutlined, SearchOutlined, GlobalOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import type { ReactNode } from 'react';
 import { useAgentStore } from '../../../stores/agentStore';
 import { useAutoScroll } from '../../Chat/hooks/useAutoScroll';
 import { MarkdownRenderer } from '../../Chat/components/MarkdownRenderer';
 import { DiffBlock } from './DiffBlock';
+import { TOOL_META, getToolPreview } from '../agentToolMeta';
 import type { AgentContentBlock, AgentMessage, AgentToolUseBlock, AgentToolResultBlock } from '@shared/types/agent';
-
-// 工具名 → 图标 + 颜色
-const TOOL_META: Record<string, { icon: ReactNode; color: string }> = {
-  Read:    { icon: <ReadOutlined />,    color: '#3b82f6' },
-  Edit:    { icon: <EditOutlined />,    color: '#f59e0b' },
-  Write:   { icon: <FileAddOutlined />, color: '#10b981' },
-  Bash:    { icon: <CodeOutlined />,    color: '#8b5cf6' },
-  Glob:    { icon: <SearchOutlined />,  color: '#6366f1' },
-  Grep:    { icon: <SearchOutlined />,  color: '#ec4899' },
-  WebFetch:{ icon: <GlobalOutlined />,  color: '#06b6d4' },
-  WebSearch:{ icon: <GlobalOutlined />, color: '#0ea5e9' },
-};
-
-function getToolPreview(name: string, input: Record<string, unknown>): string {
-  if (input.file_path) return String(input.file_path).split(/[/\\]/).pop() || '';
-  if (input.command) return String(input.command).slice(0, 60);
-  if (input.pattern) return String(input.pattern);
-  if (input.query) return String(input.query).slice(0, 40);
-  if (input.url) return String(input.url).slice(0, 50);
-  return name;
-}
 
 function truncate(str: string, max: number): string {
   if (str.length <= max) return str;
@@ -81,7 +58,7 @@ export function AgentMessageList() {
 
   return (
     <div ref={containerRef} style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
-      {messages.length === 0 ? (
+      {messages.length === 0 && !error ? (
         <EmptyState />
       ) : (
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
