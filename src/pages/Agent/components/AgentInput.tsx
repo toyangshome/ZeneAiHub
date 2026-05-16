@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Sender } from '@ant-design/x';
 import { App, theme } from 'antd';
 import { useAgentStore } from '../../../stores/agentStore';
@@ -13,8 +13,18 @@ export function AgentInput() {
   const stopSession = useAgentStore((s) => s.stopSession);
   const cliAvailable = useAgentStore((s) => s.cliAvailable);
   const cwd = useAgentStore((s) => s.cwd);
+  const pendingMessage = useAgentStore((s) => s.pendingMessage);
+  const setPendingMessage = useAgentStore((s) => s.setPendingMessage);
 
   const [value, setValue] = useState('');
+
+  // 从 Chat 页面跳转时自动填充消息
+  useEffect(() => {
+    if (pendingMessage) {
+      setValue(pendingMessage);
+      setPendingMessage(null);
+    }
+  }, [pendingMessage, setPendingMessage]);
   const isRunning = status === 'running';
   const disabled = !cliAvailable || !cwd;
 

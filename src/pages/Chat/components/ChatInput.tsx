@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
 import { Sender, Attachments } from '@ant-design/x';
 import { App, Button, Badge } from 'antd';
-import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { PlusOutlined, CloseOutlined, RobotOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../../../stores/chatStore';
+import { useAgentStore } from '../../../stores/agentStore';
 import { useModelStore } from '../../../stores/modelStore';
 import { api } from '../../../services/ipcBridge';
 import type { FileParseResult } from '@shared/types';
@@ -20,7 +22,15 @@ export function ChatInput() {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const streaming = useChatStore((s) => s.streaming);
   const currentModelId = useModelStore((s) => s.currentModelId);
+  const navigate = useNavigate();
   const { message } = App.useApp();
+
+  const handleGoToAgent = useCallback(() => {
+    const content = value.trim();
+    if (!content) return;
+    useAgentStore.getState().setPendingMessage(content);
+    navigate('/agent');
+  }, [value, navigate]);
 
   const handleSend = useCallback(async () => {
     const content = value.trim();
@@ -115,6 +125,17 @@ export function ChatInput() {
         onPasteFile={handlePasteFile}
         actions={(oriNode) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {value.trim() && (
+              <Button
+                type="text"
+                icon={<RobotOutlined />}
+                onClick={handleGoToAgent}
+                disabled={disabled}
+                style={{ fontSize: 12, color: 'var(--ant-color-primary)', borderRadius: 8 }}
+              >
+                用 Agent 处理
+              </Button>
+            )}
             {oriNode}
             <Attachments
               items={files.map((f) => ({

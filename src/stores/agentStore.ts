@@ -222,7 +222,6 @@ function handleStreamEvent(sessionId: string, event: AgentStreamEvent) {
 
 function registerStreamListeners(sessionId: string) {
   _currentCleanup?.();
-  console.log(`[Agent] 注册监听器 ${sessionId.slice(0, 8)}`);
 
   const removeEvent = api.agent.onStreamEvent(sessionId, (event) => {
     handleStreamEvent(sessionId, event);
@@ -267,6 +266,8 @@ interface AgentState {
   messages: AgentMessage[];
   pendingApprovals: AgentPendingApproval[];
   error: string | null;
+  /** 从 Chat 页面传入的消息文本（一次性消费） */
+  pendingMessage: string | null;
 
   // Actions
   checkCli: () => Promise<void>;
@@ -284,6 +285,7 @@ interface AgentState {
   deleteSessionHistory: (sessionId: string) => Promise<void>;
   exportSession: (sessionId: string) => Promise<void>;
   listSessions: () => Promise<void>;
+  setPendingMessage: (text: string | null) => void;
   sessionSummaries: { id: string; title: string; projectPath: string; messageCount: number; createdAt: number; updatedAt: number; status: string }[];
 }
 
@@ -305,6 +307,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   pendingApprovals: [],
   error: null,
   sessionSummaries: [],
+  pendingMessage: null,
 
   checkCli: async () => {
     try {
@@ -614,5 +617,9 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     } catch (err) {
       console.warn('[Agent] 列出会话失败:', err);
     }
+  },
+
+  setPendingMessage: (text) => {
+    set({ pendingMessage: text });
   },
 }));
