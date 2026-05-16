@@ -1,7 +1,7 @@
 import type {
   Message, StreamConfig, Conversation, FileFilter,
   PromptTemplate, Skill, MCPServerConfig, MCPTool, MCPToolResult,
-  AgentSessionConfig, AgentStreamEvent,
+  AgentSessionConfig, AgentStreamEvent, AgentContentBlock,
 } from '@shared/types';
 
 /** 渲染进程 IPC 调用代理 */
@@ -112,6 +112,19 @@ export const api = {
       window.electronAPI.agent.onStreamDone(sessionId, cb),
     onStreamError: (sessionId: string, cb: (error: string) => void) =>
       window.electronAPI.agent.onStreamError(sessionId, cb),
+    // Agent DB
+    listSessions: (projectPath?: string) =>
+      window.electronAPI.agent.listSessions(projectPath),
+    getSession: (sessionId: string) =>
+      window.electronAPI.agent.getSession(sessionId),
+    saveSession: (session: { id: string; projectPath: string; title?: string; model?: string; status?: string; totalCost?: number; totalTurns?: number }) =>
+      window.electronAPI.agent.saveSession(session),
+    deleteSession: (sessionId: string) =>
+      window.electronAPI.agent.deleteSession(sessionId),
+    listMessages: (sessionId: string) =>
+      window.electronAPI.agent.listMessages(sessionId),
+    saveMessage: (msg: { id: string; sessionId: string; role: 'user' | 'assistant'; blocks: AgentContentBlock[]; cost?: number; durationMs?: number; numTurns?: number }) =>
+      window.electronAPI.agent.saveMessage(msg),
   },
 
   // MCP

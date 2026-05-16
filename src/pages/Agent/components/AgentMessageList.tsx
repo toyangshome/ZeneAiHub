@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import { useAgentStore } from '../../../stores/agentStore';
 import { useAutoScroll } from '../../Chat/hooks/useAutoScroll';
 import { MarkdownRenderer } from '../../Chat/components/MarkdownRenderer';
+import { DiffBlock } from './DiffBlock';
 import type { AgentContentBlock, AgentMessage, AgentToolUseBlock, AgentToolResultBlock } from '@shared/types/agent';
 
 // 工具名 → 图标 + 颜色
@@ -185,6 +186,8 @@ function ToolStepRow({ segment, token, isLast }: { segment: ToolSegment; token: 
   const done = !!result;
   const isError = result?.is_error;
   const resultContent = result?.content || '';
+  const isDiffTool = toolUse.name === 'Edit' || toolUse.name === 'Write';
+  const canExpand = done && (resultContent || isDiffTool);
 
   return (
     <div style={{
@@ -192,10 +195,10 @@ function ToolStepRow({ segment, token, isLast }: { segment: ToolSegment; token: 
       borderBottom: isLast ? 'none' : `1px solid ${token.colorBorderSecondary}`,
     }}>
       <div
-        onClick={() => done && setExpanded(!expanded)}
+        onClick={() => canExpand && setExpanded(!expanded)}
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
-          padding: '7px 12px', cursor: done ? 'pointer' : 'default',
+          padding: '7px 12px', cursor: canExpand ? 'pointer' : 'default',
           userSelect: 'none',
         }}
       >
@@ -239,21 +242,37 @@ function ToolStepRow({ segment, token, isLast }: { segment: ToolSegment; token: 
         )}
 
         {/* 展开箭头 */}
-        {done && resultContent && (
+        {canExpand && (
           <span style={{ color: token.colorTextQuaternary, fontSize: 10, flexShrink: 0 }}>
             {expanded ? <DownOutlined /> : <RightOutlined />}
           </span>
         )}
       </div>
 
-      {/* 展开的完整结果 */}
-      {expanded && resultContent && (
-        <div style={{
-          padding: '8px 12px 10px 33px', fontSize: 12, lineHeight: 1.6,
-          whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 300, overflow: 'auto',
-          color: token.colorTextSecondary,
-        }}>
-          {resultContent}
+      {/* 展开的完整结果 / Diff 视图 */}
+      {expanded && done && (
+        <div style={{ padding: '4px 12px 8px 33px' }}>
+          {toolUse.name === 'Edit' && toolUse.input.old_string !== undefined ? (
+            <DiffBlock
+              filePath={String(toolUse.input.file_path || '')}
+              oldContent={String(toolUse.input.old_string)}
+              newContent={String(toolUse.input.new_string || '')}
+            />
+          ) : toolUse.name === 'Write' && toolUse.input.content !== undefined ? (
+            <DiffBlock
+              filePath={String(toolUse.input.file_path || '')}
+              oldContent=""
+              newContent={String(toolUse.input.content)}
+            />
+          ) : resultContent ? (
+            <div style={{
+              fontSize: 12, lineHeight: 1.6,
+              whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 300, overflow: 'auto',
+              color: token.colorTextSecondary,
+            }}>
+              {resultContent}
+            </div>
+          ) : null}
         </div>
       )}
     </div>

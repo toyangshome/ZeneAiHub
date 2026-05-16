@@ -1,7 +1,10 @@
 import { ipcMain, dialog } from 'electron';
 import { IPC } from '@shared/types/ipc';
 import { agentService } from '../services/agent/AgentService';
+import { AgentSessionRepo } from '../services/storage/repositories/AgentSessionRepo';
 import type { AgentSessionConfig } from '@shared/types/agent';
+
+const agentSessionRepo = new AgentSessionRepo();
 
 export function registerAgentHandlers(): void {
   ipcMain.handle(IPC.AGENT_CHECK_CLI, async () => {
@@ -43,5 +46,30 @@ export function registerAgentHandlers(): void {
   ipcMain.handle(IPC.AGENT_SESSION_PERMISSION, async (_event, sessionId: string, toolUseId: string, approved: boolean) => {
     const ok = agentService.sendPermissionResponse(sessionId, toolUseId, approved);
     if (!ok) throw new Error('权限响应发送失败：会话不存在或已关闭');
+  });
+
+  // Agent DB handlers
+  ipcMain.handle(IPC.AGENT_SESSION_LIST, async (_event, projectPath?: string) => {
+    return agentSessionRepo.list(projectPath);
+  });
+
+  ipcMain.handle(IPC.AGENT_SESSION_GET, async (_event, sessionId: string) => {
+    return agentSessionRepo.get(sessionId);
+  });
+
+  ipcMain.handle(IPC.AGENT_SESSION_SAVE, async (_event, session: Parameters<typeof agentSessionRepo.save>[0]) => {
+    agentSessionRepo.save(session);
+  });
+
+  ipcMain.handle(IPC.AGENT_SESSION_DELETE, async (_event, sessionId: string) => {
+    agentSessionRepo.delete(sessionId);
+  });
+
+  ipcMain.handle(IPC.AGENT_MESSAGE_LIST, async (_event, sessionId: string) => {
+    return agentSessionRepo.listMessages(sessionId);
+  });
+
+  ipcMain.handle(IPC.AGENT_MESSAGE_SAVE, async (_event, msg: Parameters<typeof agentSessionRepo.saveMessage>[0]) => {
+    agentSessionRepo.saveMessage(msg);
   });
 }

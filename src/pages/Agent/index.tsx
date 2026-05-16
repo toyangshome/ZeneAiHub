@@ -4,7 +4,7 @@ import { useAgentStore } from '../../stores/agentStore';
 import { AgentSidebar } from './components/AgentSidebar';
 import { AgentMessageList } from './components/AgentMessageList';
 import { AgentInput } from './components/AgentInput';
-import { ApprovalBar } from './components/ApprovalBar';
+import { ApprovalModal } from './components/ApprovalModal';
 
 export default function AgentPage() {
   const checkCli = useAgentStore((s) => s.checkCli);
@@ -26,7 +26,7 @@ export default function AgentPage() {
       </Layout.Sider>
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <AgentMessageList />
-        <ApprovalBar />
+        <ApprovalModal />
         <AgentInput />
       </div>
     </Layout>

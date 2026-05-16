@@ -10,7 +10,66 @@ import type { PromptTemplate, VariableDef } from './prompt';
 import type { Skill } from './skill';
 import type { FileParseResult } from './file';
 import type { MCPServerConfig, MCPTool, MCPToolResult } from './mcp';
-import type { AgentSessionConfig, AgentStreamEvent } from './agent';
+import type { AgentSessionConfig, AgentStreamEvent, AgentContentBlock } from './agent';
+
+/** Agent 会话摘要（侧边栏列表用） */
+export interface AgentSessionSummary {
+  id: string;
+  projectPath: string;
+  title: string;
+  model: string | null;
+  status: string;
+  messageCount: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Agent 会话完整记录 */
+export interface AgentSessionRecord {
+  id: string;
+  project_path: string;
+  title: string;
+  model: string | null;
+  status: string;
+  total_cost: number;
+  total_turns: number;
+  created_at: number;
+  updated_at: number;
+}
+
+/** Agent 会话写入参数 */
+export interface AgentSessionInput {
+  id: string;
+  projectPath: string;
+  title?: string;
+  model?: string;
+  status?: string;
+  totalCost?: number;
+  totalTurns?: number;
+}
+
+/** Agent 消息数据库记录 */
+export interface AgentMessageDbRecord {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'assistant';
+  blocks: AgentContentBlock[];
+  createdAt: number;
+  cost?: number;
+  durationMs?: number;
+  numTurns?: number;
+}
+
+/** Agent 消息写入参数 */
+export interface AgentMessageDbInput {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'assistant';
+  blocks: AgentContentBlock[];
+  cost?: number;
+  durationMs?: number;
+  numTurns?: number;
+}
 
 export interface ElectronAPI {
   // 系统
@@ -123,6 +182,13 @@ export interface ElectronAPI {
     onStreamEvent(sessionId: string, callback: (event: AgentStreamEvent) => void): () => void;
     onStreamDone(sessionId: string, callback: () => void): () => void;
     onStreamError(sessionId: string, callback: (error: string) => void): () => void;
+    // Agent DB
+    listSessions(projectPath?: string): Promise<AgentSessionSummary[]>;
+    getSession(sessionId: string): Promise<AgentSessionRecord | null>;
+    saveSession(session: AgentSessionInput): Promise<void>;
+    deleteSession(sessionId: string): Promise<void>;
+    listMessages(sessionId: string): Promise<AgentMessageDbRecord[]>;
+    saveMessage(msg: AgentMessageDbInput): Promise<void>;
   };
 
   // 主题

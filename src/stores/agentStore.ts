@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import type { AgentMessage, AgentContentBlock, AgentToolResultBlock, AgentSessionConfig, AgentStreamEvent, AgentPermissionMode, AgentPendingApproval } from '@shared/types/agent';
 import { api } from '../services/ipcBridge';
+import { agentSessionToMarkdown } from '../pages/Agent/agentExport';
 
 // ========== 模块级状态 ==========
 
@@ -18,6 +19,17 @@ const _pendingApprovalIds = new Set<string>();
 
 /** 已到达但等待确认的 tool_result，key = tool_use_id */
 const _bufferedResults = new Map<string, AgentToolResultBlock>();
+
+/** 本会话中"始终允许"的工具名集合 */
+const _alwaysAllowTools = new Set<string>();
+
+/** 保存消息到数据库（静默失败） */
+function saveMsgToDb(sessionId: string, msg: AgentMessage) {
+  api.agent.saveMessage({
+    id: msg.id, sessionId, role: msg.role,
+    blocks: msg.blocks, cost: msg.cost, durationMs: msg.durationMs, numTurns: msg.numTurns,
+  }).catch((e) => console.warn('[Agent] 保存消息失败:', e));
+}
 
 // ========== 工具函数 ==========
 
@@ -58,13 +70,22 @@ function handleStreamEvent(sessionId: string, event: AgentStreamEvent) {
             b.type === 'tool_use' && DANGEROUS_TOOLS.has(b.name) && !_pendingApprovalIds.has(b.id)
         );
         if (dangerousUses.length > 0) {
-          const newApprovals: AgentPendingApproval[] = dangerousUses.map((b) => {
-            _pendingApprovalIds.add(b.id);
-            return { toolUseId: b.id, toolName: b.name, toolInput: b.input };
-          });
-          useAgentStore.setState((s) => ({
-            pendingApprovals: [...s.pendingApprovals, ...newApprovals],
-          }));
+          // 分离：已在"始终允许"列表中的自动批准，其余需要弹窗
+          const needsApproval: AgentPendingApproval[] = [];
+          const { sessionId: curSid } = useAgentStore.getState();
+          for (const b of dangerousUses) {
+            if (_alwaysAllowTools.has(b.name)) {
+              if (curSid) api.agent.sessionPermissionRespond(curSid, b.id, true);
+            } else {
+              _pendingApprovalIds.add(b.id);
+              needsApproval.push({ toolUseId: b.id, toolName: b.name, toolInput: b.input });
+            }
+          }
+          if (needsApproval.length > 0) {
+            useAgentStore.setState((s) => ({
+              pendingApprovals: [...s.pendingApprovals, ...needsApproval],
+            }));
+          }
         }
 
         useAgentStore.setState((s) => {
@@ -156,15 +177,33 @@ function handleStreamEvent(sessionId: string, event: AgentStreamEvent) {
       // 回合结束：清理审批状态，补全未完成的 tool_use
       _pendingApprovalIds.clear();
       _bufferedResults.clear();
-      useAgentStore.setState((s) => ({
-        messages: completeToolUseForSession(sessionId, s.messages),
-        pendingApprovals: [],
-        currentCost: s.currentCost + (event.total_cost_usd || 0),
-        currentDuration: s.currentDuration + (event.duration_ms || 0),
-        currentTurns: s.currentTurns + (event.num_turns || 1),
-        status: event.is_error ? 'error' : 'waiting_input',
-        error: event.is_error ? (event.result || 'Agent 执行出错') : null,
-      }));
+      useAgentStore.setState((s) => {
+        const completed = completeToolUseForSession(sessionId, s.messages);
+        const newCost = s.currentCost + (event.total_cost_usd || 0);
+        const newDuration = s.currentDuration + (event.duration_ms || 0);
+        const newTurns = s.currentTurns + (event.num_turns || 1);
+        // 持久化：保存最后一条 assistant 消息（含完整 tool_result）和更新会话统计
+        for (let i = completed.length - 1; i >= 0; i--) {
+          if (completed[i].role === 'assistant' && completed[i].sessionId === sessionId) {
+            saveMsgToDb(sessionId, {
+              ...completed[i],
+              cost: event.total_cost_usd, durationMs: event.duration_ms, numTurns: event.num_turns,
+            });
+            break;
+          }
+        }
+        api.agent.saveSession({
+          id: sessionId, projectPath: s.cwd,
+          status: event.is_error ? 'error' : 'active',
+          totalCost: newCost, totalTurns: newTurns,
+        }).catch(() => {});
+        return {
+          messages: completed, pendingApprovals: [],
+          currentCost: newCost, currentDuration: newDuration, currentTurns: newTurns,
+          status: event.is_error ? 'error' as const : 'waiting_input' as const,
+          error: event.is_error ? (event.result || 'Agent 执行出错') : null,
+        };
+      });
       break;
 
     case 'error':
@@ -240,6 +279,12 @@ interface AgentState {
   clearMessages: () => void;
   approveTool: (toolUseId: string) => void;
   denyTool: (toolUseId: string) => void;
+  alwaysAllowTool: (toolUseId: string, toolName: string) => void;
+  loadSession: (sessionId: string) => Promise<void>;
+  deleteSessionHistory: (sessionId: string) => Promise<void>;
+  exportSession: (sessionId: string) => Promise<void>;
+  listSessions: () => Promise<void>;
+  sessionSummaries: { id: string; title: string; projectPath: string; messageCount: number; createdAt: number; updatedAt: number; status: string }[];
 }
 
 // ========== Store ==========
@@ -259,6 +304,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   messages: [],
   pendingApprovals: [],
   error: null,
+  sessionSummaries: [],
 
   checkCli: async () => {
     try {
@@ -290,7 +336,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     }
   },
 
-  setCwd: (cwd) => set({ cwd }),
+  setCwd: (cwd) => {
+    set({ cwd });
+    get().listSessions();
+  },
 
   setPermissionMode: (mode) => {
     const { sessionId, status, permissionMode: oldMode } = get();
@@ -325,6 +374,11 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       error: null,
     }));
 
+    // 持久化用户消息
+    if (sessionId) {
+      saveMsgToDb(sessionId, userMsg);
+    }
+
     try {
       // 如果已有活跃会话进程，直接通过 stdin 发送消息（持久进程）
       if (sessionId && status !== 'idle') {
@@ -353,6 +407,15 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
       const { sessionId: newId } = await api.agent.sessionCreate(config);
       registerStreamListeners(newId);
+
+      // 创建会话记录并补填用户消息的 sessionId
+      api.agent.saveSession({
+        id: newId, projectPath: cwd,
+        title: content.slice(0, 80), model: config.model,
+      }).catch(() => {});
+      // 补填已保存的用户消息（之前 sessionId 为空）
+      saveMsgToDb(newId, { ...userMsg, sessionId: newId });
+
       set({ sessionId: newId });
     } catch (err) {
       console.error('[Agent] sendMessage 异常:', err);
@@ -368,6 +431,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     if (!sessionId) return;
     _currentCleanup?.();
     _currentCleanup = null;
+    _alwaysAllowTools.clear();
     await api.agent.sessionStop(sessionId).catch(console.error);
     set({ sessionId: null, status: 'idle' });
   },
@@ -375,6 +439,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   clearMessages: () => {
     const { sessionId, status } = get();
     _isInAssistantTurn = false;
+    _alwaysAllowTools.clear();
     if (status === 'running' && sessionId) {
       _currentCleanup?.();
       _currentCleanup = null;
@@ -396,6 +461,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     _pendingApprovalIds.delete(toolUseId);
     const buffered = _bufferedResults.get(toolUseId);
     _bufferedResults.delete(toolUseId);
+
+    // 通知 CLI 批准
+    const { sessionId } = get();
+    if (sessionId) api.agent.sessionPermissionRespond(sessionId, toolUseId, true);
 
     if (buffered) {
       // 将缓冲的 tool_result 追加到对应消息
@@ -421,19 +490,129 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   denyTool: (toolUseId) => {
-    // 拒绝 = 停止会话
     _pendingApprovalIds.delete(toolUseId);
     _bufferedResults.delete(toolUseId);
+
+    // 通知 CLI 拒绝（而非终止会话）
     const { sessionId } = get();
-    if (sessionId) {
+    if (sessionId) api.agent.sessionPermissionRespond(sessionId, toolUseId, false);
+
+    set((s) => ({
+      pendingApprovals: s.pendingApprovals.filter((a) => a.toolUseId !== toolUseId),
+    }));
+  },
+
+  alwaysAllowTool: (toolUseId, toolName) => {
+    _alwaysAllowTools.add(toolName);
+    _pendingApprovalIds.delete(toolUseId);
+    _bufferedResults.delete(toolUseId);
+
+    const { sessionId } = get();
+    if (sessionId) api.agent.sessionPermissionRespond(sessionId, toolUseId, true);
+
+    // 批量批准当前同类型的其他 pending approvals
+    useAgentStore.setState((s) => {
+      const sameType = s.pendingApprovals.filter(
+        (a) => a.toolName === toolName && a.toolUseId !== toolUseId
+      );
+      for (const a of sameType) {
+        _pendingApprovalIds.delete(a.toolUseId);
+        _bufferedResults.delete(a.toolUseId);
+        if (sessionId) api.agent.sessionPermissionRespond(sessionId, a.toolUseId, true);
+      }
+      return {
+        pendingApprovals: s.pendingApprovals.filter(
+          (a) => a.toolName !== toolName
+        ),
+      };
+    });
+  },
+
+  loadSession: async (sessionId) => {
+    try {
+      // 停止当前会话
+      const { sessionId: curSid, status } = get();
+      if (curSid && status === 'running') {
+        _currentCleanup?.();
+        _currentCleanup = null;
+        await api.agent.sessionStop(curSid).catch(() => {});
+      }
+      _alwaysAllowTools.clear();
+      _pendingApprovalIds.clear();
+      _bufferedResults.clear();
+      _isInAssistantTurn = false;
+
+      // 加载会话信息和消息
+      const [session, messages] = await Promise.all([
+        api.agent.getSession(sessionId),
+        api.agent.listMessages(sessionId),
+      ]);
+      if (!session) return;
+
+      const agentMessages: AgentMessage[] = messages.map((m) => ({
+        id: m.id, sessionId: m.sessionId, role: m.role,
+        blocks: m.blocks, createdAt: m.createdAt,
+        cost: m.cost, durationMs: m.durationMs, numTurns: m.numTurns,
+      }));
+
+      set({
+        sessionId,
+        cwd: session.project_path,
+        model: session.model,
+        messages: agentMessages,
+        currentCost: session.total_cost,
+        currentTurns: session.total_turns,
+        status: 'waiting_input',
+        error: null,
+        pendingApprovals: [],
+      });
+    } catch (err) {
+      console.error('[Agent] loadSession 失败:', err);
+    }
+  },
+
+  deleteSessionHistory: async (sessionId) => {
+    await api.agent.deleteSession(sessionId).catch(console.error);
+    const { sessionId: curSid } = get();
+    if (curSid === sessionId) {
       _currentCleanup?.();
       _currentCleanup = null;
-      api.agent.sessionStop(sessionId).catch(() => {});
+      _alwaysAllowTools.clear();
+      set({
+        messages: [], sessionId: null, status: 'idle',
+        currentCost: 0, currentDuration: 0, currentTurns: 0,
+        pendingApprovals: [], error: null,
+      });
     }
-    set({
-      pendingApprovals: [],
-      sessionId: null,
-      status: 'idle',
-    });
+    get().listSessions();
+  },
+
+  exportSession: async (sessionId) => {
+    try {
+      const [session, messages] = await Promise.all([
+        api.agent.getSession(sessionId),
+        api.agent.listMessages(sessionId),
+      ]);
+      if (!session) return;
+
+      const md = agentSessionToMarkdown(
+        { title: session.title, projectPath: session.project_path, model: session.model, createdAt: session.created_at },
+        messages,
+      );
+      const safeTitle = (session.title || 'agent-session').slice(0, 40).replace(/[\\/:*?"<>|]/g, '_');
+      await api.file.export(md, `${safeTitle}.md`, 'md');
+    } catch (err) {
+      console.error('[Agent] 导出失败:', err);
+    }
+  },
+
+  listSessions: async () => {
+    try {
+      const { cwd } = get();
+      const summaries = await api.agent.listSessions(cwd || undefined);
+      set({ sessionSummaries: summaries });
+    } catch (err) {
+      console.warn('[Agent] 列出会话失败:', err);
+    }
   },
 }));

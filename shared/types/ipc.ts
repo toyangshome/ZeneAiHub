@@ -75,4 +75,12 @@ export const IPC = {
   AGENT_SESSION_SEND: 'agent:session:send',
   AGENT_SESSION_STOP: 'agent:session:stop',
   AGENT_SESSION_PERMISSION: 'agent:session:permission',
+
+  // Agent DB
+  AGENT_SESSION_LIST: 'agent:session:list',
+  AGENT_SESSION_GET: 'agent:session:get',
+  AGENT_SESSION_SAVE: 'agent:session:save',
+  AGENT_SESSION_DELETE: 'agent:session:delete',
+  AGENT_MESSAGE_LIST: 'agent:message:list',
+  AGENT_MESSAGE_SAVE: 'agent:message:save',
 } as const;

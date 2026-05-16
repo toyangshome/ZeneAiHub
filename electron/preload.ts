@@ -148,6 +148,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on(channel, handler);
       return () => { ipcRenderer.removeListener(channel, handler); };
     },
+    // Agent DB
+    listSessions: (projectPath?: string) =>
+      ipcRenderer.invoke('agent:session:list', projectPath),
+    getSession: (sessionId: string) =>
+      ipcRenderer.invoke('agent:session:get', sessionId),
+    saveSession: (session: unknown) =>
+      ipcRenderer.invoke('agent:session:save', session),
+    deleteSession: (sessionId: string) =>
+      ipcRenderer.invoke('agent:session:delete', sessionId),
+    listMessages: (sessionId: string) =>
+      ipcRenderer.invoke('agent:message:list', sessionId),
+    saveMessage: (msg: unknown) =>
+      ipcRenderer.invoke('agent:message:save', msg),
   },
 
   // ===== MCP =====
