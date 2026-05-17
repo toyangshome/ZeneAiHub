@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 
-export function useAutoScroll(deps: unknown[]) {
+export function useAutoScroll(...deps: unknown[]) {
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
 
@@ -15,6 +15,7 @@ export function useAutoScroll(deps: unknown[]) {
     const el = containerRef.current;
     if (!el || !shouldAutoScroll.current) return;
     el.scrollTop = el.scrollHeight;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   useEffect(() => {

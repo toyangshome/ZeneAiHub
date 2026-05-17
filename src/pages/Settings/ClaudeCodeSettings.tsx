@@ -18,8 +18,7 @@ export function ClaudeCodeSettings() {
   const cliAvailable = useAgentStore((s) => s.cliAvailable);
   const cliVersion = useAgentStore((s) => s.cliVersion);
   const cliCheckError = useAgentStore((s) => s.cliCheckError);
-  const checkCli = useAgentStore((s) => s.checkCli);
-  const getCliVersion = useAgentStore((s) => s.getCliVersion);
+  const initCli = useAgentStore((s) => s.initCli);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
@@ -77,7 +76,7 @@ export function ClaudeCodeSettings() {
           </Tag>
         )}
         {baseUrl && <Tag>代理: {baseUrl}</Tag>}
-        <Button size="small" icon={<ReloadOutlined />} onClick={() => { checkCli(); getCliVersion(); }}>
+        <Button size="small" icon={<ReloadOutlined />} onClick={() => initCli()}>
           重新检测
         </Button>
         <Button size="small" icon={<SettingOutlined />} onClick={handleOpen}>

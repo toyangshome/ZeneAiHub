@@ -172,7 +172,7 @@ export interface ElectronAPI {
 
   // Agent
   agent: {
-    checkCli(): Promise<{ available: boolean; path?: string; error?: string }>;
+    checkCli(): Promise<{ available: boolean; path?: string; error?: string; version?: string }>;
     getCliVersion(): Promise<string | undefined>;
     selectDirectory(): Promise<string | null>;
     sessionCreate(config: AgentSessionConfig): Promise<{ sessionId: string }>;

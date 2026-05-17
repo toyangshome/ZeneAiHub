@@ -270,8 +270,7 @@ interface AgentState {
   pendingMessage: string | null;
 
   // Actions
-  checkCli: () => Promise<void>;
-  getCliVersion: () => void;
+  initCli: () => Promise<void>;
   selectDirectory: () => Promise<void>;
   setCwd: (cwd: string) => void;
   setPermissionMode: (mode: AgentPermissionMode) => void;
@@ -309,12 +308,13 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   sessionSummaries: [],
   pendingMessage: null,
 
-  checkCli: async () => {
+  initCli: async () => {
     try {
       const result = await api.agent.checkCli();
       set({
         cliAvailable: result.available,
         cliCheckError: result.error || null,
+        cliVersion: result.version || null,
       });
     } catch (err) {
       set({
@@ -322,12 +322,6 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         cliCheckError: err instanceof Error ? err.message : 'CLI 检测失败',
       });
     }
-  },
-
-  getCliVersion: () => {
-    api.agent.getCliVersion()
-      .then((version) => { if (version) set({ cliVersion: version }); })
-      .catch(() => {});
   },
 
   selectDirectory: async () => {

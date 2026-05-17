@@ -263,14 +263,15 @@ class AgentService {
     return this.sessions.get(sessionId)?.cwd || null;
   }
 
-  /** 检查 CLI 是否可用 */
-  checkCli(): { available: boolean; path?: string; error?: string } {
+  /** 检查 CLI 是否可用，同时尝试获取版本号 */
+  async checkCli(): Promise<{ available: boolean; path?: string; error?: string; version?: string }> {
     const cliPath = getCliPath();
     const { existsSync } = require('fs');
-    if (existsSync(cliPath)) {
-      return { available: true, path: cliPath };
+    if (!existsSync(cliPath)) {
+      return { available: false, error: 'Claude CLI 未找到，请检查安装' };
     }
-    return { available: false, error: 'Claude CLI 未找到，请检查安装' };
+    const version = await this.getCliVersion();
+    return { available: true, path: cliPath, version };
   }
 
   /** 异步获取版本号 */

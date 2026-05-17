@@ -5,6 +5,10 @@ import { useAgentStore } from '../../../stores/agentStore';
 import { ProjectSelector } from './ProjectSelector';
 import { PermissionModeSelector } from './PermissionModeSelector';
 
+// 模块级常量 — 避免每次 render 创建新引用
+const SENDER_AUTO_SIZE = { minRows: 1, maxRows: 6 };
+const SENDER_ACTIONS = () => null;
+
 export function AgentInput() {
   const { message } = App.useApp();
   const { token } = theme.useToken();
@@ -70,8 +74,8 @@ export function AgentInput() {
           !cwd ? '请先选择项目目录' :
           '描述你的编程任务...'
         }
-        autoSize={{ minRows: 1, maxRows: 6 }}
-        actions={() => null}
+        autoSize={SENDER_AUTO_SIZE}
+        actions={SENDER_ACTIONS}
         allowSpeech={false}
         footer={({ components: { SendButton: Send } }) => (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

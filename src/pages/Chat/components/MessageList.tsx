@@ -36,7 +36,7 @@ export function MessageList() {
   const streaming = useChatStore((s) => s.streaming);
   const userAvatar = useUIStore((s) => s.userAvatar);
   const assistantAvatar = useUIStore((s) => s.assistantAvatar);
-  const { containerRef, scrollToBottom } = useAutoScroll([messages.length, streaming]);
+  const { containerRef, scrollToBottom } = useAutoScroll(messages.length, streaming);
 
   const items: GetProp<typeof Bubble.List, 'items'> = useMemo(
     () =>

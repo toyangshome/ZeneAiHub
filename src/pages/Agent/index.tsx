@@ -7,13 +7,11 @@ import { AgentInput } from './components/AgentInput';
 import { ApprovalModal } from './components/ApprovalModal';
 
 export default function AgentPage() {
-  const checkCli = useAgentStore((s) => s.checkCli);
-  const getCliVersion = useAgentStore((s) => s.getCliVersion);
+  const initCli = useAgentStore((s) => s.initCli);
 
   useEffect(() => {
-    checkCli();
-    getCliVersion();
-  }, [checkCli, getCliVersion]);
+    initCli();
+  }, [initCli]);
 
   return (
     <Layout style={{ height: '100%', width: '100%' }}>

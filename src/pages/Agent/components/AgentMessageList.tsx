@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Typography, Tag, theme } from 'antd';
 import {
   ApiOutlined, CloseCircleOutlined,
@@ -54,7 +54,7 @@ export function AgentMessageList() {
   const messages = useAgentStore((s) => s.messages);
   const status = useAgentStore((s) => s.status);
   const error = useAgentStore((s) => s.error);
-  const { containerRef } = useAutoScroll([messages.length, status]);
+  const { containerRef } = useAutoScroll(messages.length, status);
 
   return (
     <div ref={containerRef} style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
@@ -75,7 +75,7 @@ export function AgentMessageList() {
 
 // ========== 消息气泡 ==========
 
-function AgentMessageBubble({ message }: { message: AgentMessage }) {
+const AgentMessageBubble = memo(function AgentMessageBubble({ message }: { message: AgentMessage }) {
   const { token } = theme.useToken();
   const isUser = message.role === 'user';
 
@@ -150,7 +150,7 @@ function AgentMessageBubble({ message }: { message: AgentMessage }) {
       )}
     </div>
   );
-}
+});
 
 // ========== 工具步骤行 ==========
 
